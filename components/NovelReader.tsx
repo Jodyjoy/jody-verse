@@ -2,30 +2,36 @@
 
 import { useState, useEffect } from "react";
 import { ArrowLeft, Settings, Type, Moon, Sun, BookOpen } from "lucide-react";
-import { supabase } from "../lib/supabaseClient"; // 1. Import Supabase
+import { supabase } from "../lib/supabaseClient";
+import { useParams, useRouter } from "next/navigation"; // New imports!
 
 export default function NovelReader() {
+  const { id } = useParams(); // Grab the ID from the URL (e.g., "2")
+  const router = useRouter();
+  
   const [textSize, setTextSize] = useState(18);
   const [theme, setTheme] = useState<'dark' | 'light' | 'sepia'>('dark');
   const [showSettings, setShowSettings] = useState(false);
   
-  // 2. New State for Content
   const [chapterTitle, setChapterTitle] = useState("Loading...");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // 3. Fetch from Database
+  // FETCH DATA BASED ON URL ID
   useEffect(() => {
+    if (!id) return; // Wait until we have the ID
+
     const fetchChapter = async () => {
       const { data, error } = await supabase
         .from('novel_chapters')
         .select('*')
-        .eq('chapter_number', 1) // Get Chapter 1
-        .single(); // We expect only one result
+        .eq('chapter_number', id) // <--- DYNAMIC NOW! (Not hardcoded to 1)
+        .single();
 
       if (error) {
         console.error('Error fetching novel:', error);
-        setChapterTitle("Error loading chapter");
+        setChapterTitle("Chapter not found");
+        setContent("This chapter hasn't been written yet!");
       } else if (data) {
         setChapterTitle(data.title);
         setContent(data.content);
@@ -34,7 +40,7 @@ export default function NovelReader() {
     };
 
     fetchChapter();
-  }, []);
+  }, [id]);
 
   const themes = {
     dark: "bg-[#121212] text-gray-300",
@@ -42,15 +48,17 @@ export default function NovelReader() {
     sepia: "bg-[#e8dcc5] text-[#433422]",
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading Urithi...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading Chapter {id}...</div>;
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${themes[theme]}`}>
       
       {/* HEADER */}
       <div className="fixed top-0 left-0 w-full h-16 border-b border-opacity-10 border-gray-500 backdrop-blur-sm z-50 flex items-center justify-between px-4">
-        <button className="p-2 rounded-full hover:bg-white/10 transition"><ArrowLeft size={24} /></button>
-        <span className="font-bold tracking-wider opacity-80">URITHI: BOOK I</span>
+        <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-white/10 transition">
+            <ArrowLeft size={24} />
+        </button>
+        <span className="font-bold tracking-wider opacity-80">CHAPTER {id}</span>
         <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-full hover:bg-white/10 transition"><Settings size={24} /></button>
       </div>
 
@@ -79,7 +87,6 @@ export default function NovelReader() {
       {/* NOVEL CONTENT */}
       <div className="max-w-prose mx-auto pt-28 pb-20 px-6">
         <h1 className="text-4xl font-bold mb-8 leading-tight">{chapterTitle}</h1>
-        
         <article style={{ fontSize: `${textSize}px`, lineHeight: '1.8' }} className="font-serif space-y-6 whitespace-pre-wrap">
             {content}
         </article>

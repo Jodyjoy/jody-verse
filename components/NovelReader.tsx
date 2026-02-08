@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Settings, Type, Moon, Sun, BookOpen } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import { useParams, useRouter } from "next/navigation"; // New imports!
+import { useParams, useRouter } from "next/navigation";
+import CommentSection from "./CommentSection"; // <--- Import is here
 
 export default function NovelReader() {
-  const { id } = useParams(); // Grab the ID from the URL (e.g., "2")
+  const { id } = useParams();
   const router = useRouter();
   
   const [textSize, setTextSize] = useState(18);
@@ -17,15 +18,14 @@ export default function NovelReader() {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // FETCH DATA BASED ON URL ID
   useEffect(() => {
-    if (!id) return; // Wait until we have the ID
+    if (!id) return;
 
     const fetchChapter = async () => {
       const { data, error } = await supabase
         .from('novel_chapters')
         .select('*')
-        .eq('chapter_number', id) // <--- DYNAMIC NOW! (Not hardcoded to 1)
+        .eq('chapter_number', id)
         .single();
 
       if (error) {
@@ -55,7 +55,7 @@ export default function NovelReader() {
       
       {/* HEADER */}
       <div className="fixed top-0 left-0 w-full h-16 border-b border-opacity-10 border-gray-500 backdrop-blur-sm z-50 flex items-center justify-between px-4">
-        <button onClick={() => router.push('/')} className="p-2 rounded-full hover:bg-white/10 transition">
+        <button onClick={() => router.push('/novel')} className="p-2 rounded-full hover:bg-white/10 transition">
             <ArrowLeft size={24} />
         </button>
         <span className="font-bold tracking-wider opacity-80">CHAPTER {id}</span>
@@ -90,6 +90,11 @@ export default function NovelReader() {
         <article style={{ fontSize: `${textSize}px`, lineHeight: '1.8' }} className="font-serif space-y-6 whitespace-pre-wrap">
             {content}
         </article>
+
+        {/* COMMENT SECTION */}
+        <div className="mt-20 border-t border-gray-800 pt-10">
+            <CommentSection slug={`novel-${id}`} />
+        </div>
       </div>
 
     </div>

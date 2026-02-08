@@ -1,9 +1,5 @@
 import NovelReader from "../../../components/NovelReader";
 
-export default function NovelPage() {
-  return (
-    <main>
-      <NovelReader />
-    </main>
-  );
+export default function ChapterPage() {
+  return <NovelReader />;
 }

@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight, Menu } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation"; 
+import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
-import CommentSection from "./CommentSection"; // 1. Import tools
 
 interface MangaPage {
   id: number;
@@ -13,23 +13,23 @@ interface MangaPage {
 }
 
 export default function MangaReader() {
-  const { id } = useParams(); // 2. Get the ID (e.g. "2")
+  const { id } = useParams();
   const router = useRouter();
 
   const [pages, setPages] = useState<MangaPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  // 3. FETCH DYNAMIC DATA
+  // FETCH DYNAMIC DATA
   useEffect(() => {
-    if (!id) return; // Wait for URL
+    if (!id) return; 
 
     const fetchPages = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('manga_pages')
         .select('*')
-        .eq('chapter_id', id) // <--- DYNAMIC ID!
+        .eq('chapter_id', id)
         .order('page_number', { ascending: true });
 
       if (error) {
@@ -78,30 +78,8 @@ export default function MangaReader() {
         />
       </div>
 
-      <div className="w-full max-w-2xl px-6 mt-10">
-     <SocialStats slug={`manga-${id}`} /> {/* <--- ADD THIS */}
-     <CommentSection slug={`manga-${id}`} />
-</div>
-
-return (
-  <div className="min-h-screen ...">
-      {/* ... Header ... */}
-      {/* ... Reader Images ... */}
-
-      {/* 2. PASTE THIS RIGHT HERE (Above the footer buttons) */}
-      <div className="w-full max-w-2xl px-6 mt-10">
-         <CommentSection slug={`manga-${id}`} />
-      </div>
-
-      {/* Footer Buttons */}
-      <div className="w-full max-w-2xl px-6 py-10 flex justify-between text-white">
-        {/* ... buttons ... */}
-      </div>
-
-  </div>
-);
-      {/* READER */}
-      <div className="w-full max-w-2xl mt-14 pb-20 shadow-2xl shadow-black min-h-screen">
+      {/* READER IMAGES */}
+      <div className="w-full max-w-2xl mt-14 pb-10 shadow-2xl shadow-black min-h-screen">
         {pages.length > 0 ? (
             pages.map((page) => (
                 <img 
@@ -119,8 +97,14 @@ return (
         )}
       </div>
 
-      {/* FOOTER */}
-      <div className="w-full max-w-2xl px-6 py-10 flex justify-between text-white">
+      {/* SOCIAL & COMMENTS (Bottom Only) */}
+      <div className="w-full max-w-2xl px-6 mt-4 mb-10">
+         <SocialStats slug={`manga-${id}`} />
+         <CommentSection slug={`manga-${id}`} />
+      </div>
+
+      {/* FOOTER BUTTONS */}
+      <div className="w-full max-w-2xl px-6 py-10 flex justify-between text-white border-t border-gray-800">
         <button 
             onClick={() => router.push(`/read/${Number(id) - 1}`)}
             disabled={Number(id) <= 1}

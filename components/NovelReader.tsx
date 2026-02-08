@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Settings, Type, Moon, Sun, BookOpen } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { useParams, useRouter } from "next/navigation";
+import SocialStats from "./SocialStats";
 import CommentSection from "./CommentSection"; // <--- Import is here
 
 export default function NovelReader() {
@@ -90,6 +91,12 @@ export default function NovelReader() {
         <article style={{ fontSize: `${textSize}px`, lineHeight: '1.8' }} className="font-serif space-y-6 whitespace-pre-wrap">
             {content}
         </article>
+
+{/* LIKES CONTENT */}
+<div className="mt-20 border-t border-gray-800 pt-6">
+    <SocialStats slug={`novel-${id}`} /> {/* <--- ADD THIS */}
+    <CommentSection slug={`novel-${id}`} />
+</div>
 
         {/* COMMENT SECTION */}
         <div className="mt-20 border-t border-gray-800 pt-10">

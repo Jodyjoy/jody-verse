@@ -32,9 +32,12 @@ export default function Home() {
                     <BookOpen className="group-hover:rotate-12 transition-transform" /> 
                     Start Reading
                 </Link>
-                <button className="px-8 py-4 rounded-full font-bold text-lg border border-gray-700 hover:bg-white/10 transition backdrop-blur-sm">
-                    View Characters
-                </button>
+               <Link 
+  href="/wiki" 
+  className="px-8 py-4 rounded-full border border-gray-700 font-bold hover:bg-gray-800 transition"
+>
+  View Characters
+</Link>
             </div>
         </div>
       </section>

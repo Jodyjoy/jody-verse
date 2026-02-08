@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight, Menu } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import { useParams, useRouter } from "next/navigation"; // 1. Import tools
+import { useParams, useRouter } from "next/navigation";
+import SocialStats from "./SocialStats";
+import CommentSection from "./CommentSection"; // 1. Import tools
 
 interface MangaPage {
   id: number;
@@ -76,6 +78,28 @@ export default function MangaReader() {
         />
       </div>
 
+      <div className="w-full max-w-2xl px-6 mt-10">
+     <SocialStats slug={`manga-${id}`} /> {/* <--- ADD THIS */}
+     <CommentSection slug={`manga-${id}`} />
+</div>
+
+return (
+  <div className="min-h-screen ...">
+      {/* ... Header ... */}
+      {/* ... Reader Images ... */}
+
+      {/* 2. PASTE THIS RIGHT HERE (Above the footer buttons) */}
+      <div className="w-full max-w-2xl px-6 mt-10">
+         <CommentSection slug={`manga-${id}`} />
+      </div>
+
+      {/* Footer Buttons */}
+      <div className="w-full max-w-2xl px-6 py-10 flex justify-between text-white">
+        {/* ... buttons ... */}
+      </div>
+
+  </div>
+);
       {/* READER */}
       <div className="w-full max-w-2xl mt-14 pb-20 shadow-2xl shadow-black min-h-screen">
         {pages.length > 0 ? (

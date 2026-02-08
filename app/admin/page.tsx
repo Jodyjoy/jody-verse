@@ -59,24 +59,34 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // 3. MANGA BATCH UPLOAD (The New Logic!)
+  // 3. MANGA BATCH UPLOAD (Updated logic)
   const handleMangaUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mangaFiles || mangaFiles.length === 0) return;
 
     setLoading(true);
-    setMessage("⏳ Uploading pages... please wait.");
+    setMessage("⏳ Registering chapter & uploading pages...");
 
     const chapterId = parseInt(mangaChapter);
     let successCount = 0;
 
-    // Loop through every file selected
+    // A. REGISTER CHAPTER (If it doesn't exist)
+    // We try to insert. If it fails (duplicate), that's fine, we just move on.
+    const { error: chapterError } = await supabase
+        .from('manga_chapters')
+        .insert([{ 
+            chapter_number: chapterId, 
+            title: `Chapter ${chapterId}` // Default title
+        }])
+        .select();
+
+    // Loop through every file
     for (let i = 0; i < mangaFiles.length; i++) {
         const file = mangaFiles[i];
-        const filePath = `ch-${chapterId}/${Date.now()}-${file.name}`; // Unique name
+        const filePath = `ch-${chapterId}/${Date.now()}-${file.name}`;
 
-        // A. Upload Image to Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        // B. Upload Image
+        const { error: uploadError } = await supabase.storage
             .from('manga-pages')
             .upload(filePath, file);
 
@@ -85,24 +95,24 @@ export default function AdminPage() {
             continue;
         }
 
-        // B. Get Public URL
+        // C. Get URL
         const { data: { publicUrl } } = supabase.storage
             .from('manga-pages')
             .getPublicUrl(filePath);
 
-        // C. Insert into Database
+        // D. Insert Page Record
         const { error: dbError } = await supabase
             .from('manga_pages')
             .insert([{
                 chapter_id: chapterId,
-                page_number: i + 1, // Auto-numbering based on selection order
+                page_number: i + 1,
                 image_url: publicUrl
             }]);
 
         if (!dbError) successCount++;
     }
 
-    setMessage(`✅ Successfully uploaded ${successCount} pages for Chapter ${chapterId}!`);
+    setMessage(`✅ Registered Chapter ${chapterId} and uploaded ${successCount} pages!`);
     setLoading(false);
     setMangaFiles(null);
     setMangaChapter("");

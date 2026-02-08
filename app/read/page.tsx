@@ -1,15 +1,30 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, ImageIcon } from "lucide-react";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function MangaIndex() {
-  // Hardcoded for now until we make a 'chapters' table
-  // You can add more chapters to this list manually as you finish them!
-  const chapters = [
-    { id: 1, title: "The Spark", pages: 3 },
-    { id: 2, title: "Velocity", pages: 0 }, // Placeholder
-  ];
+  const [chapters, setChapters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // FETCH DYNAMIC CHAPTERS
+  useEffect(() => {
+    const fetchChapters = async () => {
+      const { data, error } = await supabase
+        .from('manga_chapters')
+        .select('*')
+        .order('chapter_number', { ascending: true });
+
+      if (error) console.error("Error fetching chapters:", error);
+      else setChapters(data || []);
+      
+      setLoading(false);
+    };
+
+    fetchChapters();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-12">
@@ -26,23 +41,31 @@ export default function MangaIndex() {
       </div>
 
       <div className="max-w-4xl mx-auto grid gap-4">
-        {chapters.map((chapter) => (
+        {loading ? (
+             <div className="text-gray-500 animate-pulse">Loading manga library...</div>
+        ) : chapters.map((chapter) => (
             <Link 
                 key={chapter.id} 
-                href={`/read/${chapter.id}`}
+                href={`/read/${chapter.chapter_number}`} // Uses the real number
                 className="group flex items-center justify-between p-6 bg-gray-900 border border-gray-800 rounded-xl hover:border-blue-500/50 hover:bg-gray-800 transition-all duration-300"
             >
                 <div className="flex items-center gap-4">
                     <span className="flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full font-bold group-hover:bg-blue-600 group-hover:text-white transition">
-                        {chapter.id}
+                        {chapter.chapter_number}
                     </span>
                     <span className="text-xl font-medium group-hover:text-blue-400 transition">
-                        {chapter.title}
+                        {chapter.title || `Chapter ${chapter.chapter_number}`}
                     </span>
                 </div>
                 <ImageIcon size={20} className="text-gray-600 group-hover:text-white transition" />
             </Link>
         ))}
+        
+        {!loading && chapters.length === 0 && (
+            <div className="text-center py-20 text-gray-500">
+                No manga chapters found. Go to Admin to upload!
+            </div>
+        )}
       </div>
     </div>
   );

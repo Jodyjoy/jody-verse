@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
 import { Shield } from "lucide-react"; // <--- Add Shield
+import { User } from "lucide-react";
 
 export default function Home() {
   return (
@@ -11,7 +12,8 @@ export default function Home() {
         {/* Background Gradient & Placeholder Image */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0a]/50 to-[#0a0a0a] z-10" />
         <div className="absolute inset-0 bg-[url('https://placehold.co/1920x1080/1e1e2e/FFF?text=Project+Rift+Art')] bg-cover bg-center opacity-40" />
-        
+        {/* ... inside your Hero buttons div ... */}
+
         {/* Hero Content */}
         <div className="relative z-20 text-center px-4 max-w-5xl mx-auto mt-10">
             <span className="inline-block py-1 px-3 rounded-full bg-blue-600/20 text-blue-400 text-sm font-bold tracking-widest mb-6 border border-blue-600/30 backdrop-blur-md">
@@ -39,9 +41,19 @@ export default function Home() {
 >
   View Characters
 </Link>
+
+<Link 
+      href="/login" 
+     className="p-4 rounded-full border border-gray-700 bg-black hover:border-blue-500 hover:text-blue-500 transition"
+     title="Contractor Login"
+    >
+    <User size={20} />
+</Link>
             </div>
         </div>
       </section>
+
+      
 
       {/* 2. TRENDING SECTION (Urithi) */}
       <section className="py-20 px-6 max-w-7xl mx-auto">

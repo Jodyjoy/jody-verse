@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useParams, useRouter } from "next/navigation";
 import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
+import BookmarkButton from "./BookmarkButton";
 
 export default function NovelReader() {
   const { id } = useParams();
@@ -61,6 +62,15 @@ export default function NovelReader() {
         </button>
         <span className="font-bold tracking-wider opacity-80">CHAPTER {id}</span>
         <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-full hover:bg-white/10 transition"><Settings size={24} /></button>
+      </div>
+
+      <span className="font-bold tracking-wider opacity-80">CHAPTER {id}</span>
+      
+      <div className="flex items-center gap-2">
+         {/* NEW BOOKMARK BUTTON */}
+         <BookmarkButton slug={`novel-${id}`} title={`Chapter ${id}`} type="novel" />
+         
+         <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-full hover:bg-white/10 transition"><Settings size={24} /></button>
       </div>
 
       {/* SETTINGS DRAWER */}

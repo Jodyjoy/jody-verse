@@ -81,13 +81,21 @@ export default function MangaReader() {
       {/* READER IMAGES */}
       <div className="w-full max-w-2xl mt-14 pb-10 shadow-2xl shadow-black min-h-screen">
         {pages.length > 0 ? (
-            pages.map((page) => (
+            pages.map((page, index) => (
                 <img 
                   key={page.id}
                   src={page.url} 
-                  alt={`Page`} 
+                  alt={`Page ${index + 1}`} 
                   className="w-full h-auto block" 
-                  loading="lazy"
+                  
+                  // 1. Force the first 2 pages to load instantly
+                  loading={index < 2 ? "eager" : "lazy"}
+                  
+                  // 2. Tell browser Page 1 is the VIP
+                  fetchPriority={index === 0 ? "high" : "auto"}
+                  
+                  // 3. Prevent layout shifts while loading
+                  style={{ minHeight: '500px', backgroundColor: '#111' }}
                 />
             ))
         ) : (

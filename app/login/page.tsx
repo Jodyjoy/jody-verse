@@ -1,17 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import { Shield, Zap, Lock, ArrowRight } from "lucide-react";
+import { Shield, Zap, Lock, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true); // New: To prevent flash of form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false); // Toggle between Login/Sign Up
+  const [isSignUp, setIsSignUp] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // 1. AUTO-REDIRECT IF ALREADY LOGGED IN
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // User is already logged in, send them to dashboard
+        router.replace("/account");
+      } else {
+        // User is guest, show the form
+        setPageLoading(false);
+      }
+    };
+    checkSession();
+  }, [router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,24 +35,34 @@ export default function LoginPage() {
     setMsg("");
 
     if (isSignUp) {
-      // SIGN UP LOGIC
       const { error } = await supabase.auth.signUp({
         email,
         password,
       });
       if (error) setMsg(error.message);
-      else setMsg("Success! Check your email (or just login if verification is off).");
+      else setMsg("Success! Check your email (or just login).");
     } else {
-      // LOGIN LOGIC
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) setMsg(error.message);
-      else router.push("/account"); // Go to dashboard on success
+      else {
+        router.push("/account");
+        router.refresh(); // Force refresh to update UI elsewhere
+      }
     }
     setLoading(false);
   };
+
+  // 2. SHOW LOADING SCREEN WHILE CHECKING
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-blue-500">
+        <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 text-white font-sans relative overflow-hidden">

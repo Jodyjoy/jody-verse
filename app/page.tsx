@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
+import { Shield } from "lucide-react"; // <--- Add Shield
 
 export default function Home() {
   return (
@@ -69,6 +70,14 @@ export default function Home() {
                     </div>
                 </div>
             </Link>
+
+           <Link
+            href="/license" 
+            className="group px-8 py-4 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold hover:bg-blue-500 hover:text-white hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 flex items-center gap-2"
+          >
+            <Shield size={20} className="group-hover:rotate-12 transition-transform" /> 
+            <span>Get License</span>
+          </Link>
 
             {/* CARD 2: COMING SOON */}
              <div className="group relative h-[450px] rounded-3xl overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#161616] transition">

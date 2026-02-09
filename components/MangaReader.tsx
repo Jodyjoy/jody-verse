@@ -8,6 +8,7 @@ import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
 import BookmarkButton from "./BookmarkButton"; // <--- Keeping your new feature
 import { motion } from "framer-motion"; 
+import { getRank } from "../lib/gameLogic";
 
 interface MangaPage {
   id: number;
@@ -21,6 +22,7 @@ export default function MangaReader() {
   const [pages, setPages] = useState<MangaPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [xpAwarded, setXpAwarded] = useState(false);
 
   // FETCH DATA
   useEffect(() => {
@@ -48,6 +50,24 @@ export default function MangaReader() {
 
     fetchPages();
   }, [id]);
+
+  // XP SYSTEM: Award XP when they reach the end (90% scroll)
+  useEffect(() => {
+    if (progress > 90 && !xpAwarded) {
+        const awardXP = async () => {
+            setXpAwarded(true); // Stop duplicate awards
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // Call the SQL function we made
+                await supabase.rpc('add_xp', { amount: 50 });
+                console.log("Create +50 XP!"); 
+                // You could add a toast notification here later!
+            }
+        };
+        awardXP();
+    }
+  }, [progress, xpAwarded]);
 
   // SCROLL PROGRESS
   useEffect(() => {

@@ -1,16 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Download, RefreshCw, Shield, Zap, User } from "lucide-react";
+import { ArrowLeft, Download, Zap, Shield } from "lucide-react";
 import Link from "next/link";
+import { getRank } from "../../lib/gameLogic";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function LicenseGenerator() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [name, setName] = useState("JODY");
-  const [squad, setSquad] = useState("Squad 7");
-  const [rank, setRank] = useState("S-RANK");
-  const [ability, setAbility] = useState("Shadow Step");
   
+  // STATE
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("Unknown");
+  const [xp, setXp] = useState(0);
+  const [squad, setSquad] = useState("Squad 7");
+  const [ability, setAbility] = useState("Shadow Step"); // Ability is still custom!
+  
+  // DERIVED STATE: Calculate Rank from XP
+  const rank = getRank(xp);
+
   // SQUAD THEMES (Color + Motto)
   const squadData: Record<string, { color: string, motto: string }> = {
     "Squad 7": { color: "#3b82f6", motto: "SHADOW OPS" },      // Blue
@@ -19,6 +27,27 @@ export default function LicenseGenerator() {
     "Void Walkers": { color: "#a855f7", motto: "NULL SECTOR" },  // Purple
   };
 
+  // 1. FETCH REAL USER DATA
+  useEffect(() => {
+    const fetchProfile = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            // Get XP and Squad from DB
+            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (data) {
+                // Use email prefix as name if no display name is set
+                setName(user.email?.split('@')[0].toUpperCase() || "AGENT");
+                setXp(data.xp);
+                // If they have a saved squad, use it, otherwise default
+                if (data.squad) setSquad(data.squad);
+            }
+        }
+        setLoading(false);
+    };
+    fetchProfile();
+  }, []);
+
+  // 2. DRAW CANVAS
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -28,14 +57,14 @@ export default function LicenseGenerator() {
     const theme = squadData[squad] || squadData["Squad 7"];
     const accentColor = theme.color;
 
-    // --- 1. BASE LAYER (Dark Metal) ---
+    // --- BASE LAYER ---
     const gradient = ctx.createLinearGradient(0, 0, 600, 400);
     gradient.addColorStop(0, "#0f172a"); 
     gradient.addColorStop(1, "#020617"); 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 600, 400);
 
-    // --- 2. TECH GRID PATTERN ---
+    // --- TECH GRID ---
     ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
     ctx.lineWidth = 1;
     for (let i = 0; i < 600; i += 40) {
@@ -45,7 +74,7 @@ export default function LicenseGenerator() {
         ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(600, i); ctx.stroke();
     }
 
-    // --- 3. GLOWING BORDER & CORNERS ---
+    // --- BORDER & GLOW ---
     ctx.shadowBlur = 15;
     ctx.shadowColor = accentColor;
     ctx.strokeStyle = accentColor;
@@ -60,14 +89,14 @@ export default function LicenseGenerator() {
     ctx.stroke();
     ctx.shadowBlur = 0; 
 
-    // --- 4. PROFILE IMAGE PLACEHOLDER ---
+    // --- PROFILE IMAGE PLACEHOLDER ---
     ctx.fillStyle = "#1e293b";
     ctx.fillRect(50, 80, 140, 180);
     ctx.strokeStyle = "#334155";
     ctx.lineWidth = 2;
     ctx.strokeRect(50, 80, 140, 180);
     
-    // Silhouette Icon
+    // Silhouette
     ctx.fillStyle = "#475569";
     ctx.beginPath();
     ctx.arc(120, 150, 40, 0, Math.PI * 2); 
@@ -80,27 +109,27 @@ export default function LicenseGenerator() {
     ctx.font = "bold 14px Courier New";
     ctx.fillText("NO SIGNAL", 85, 170);
 
-    // --- 5. TEXT DATA (Refined Layout) ---
+    // --- TEXT DATA ---
     ctx.fillStyle = "#fff";
     
-    // Header (MOVED LEFT to x=200 to avoid badge)
-    ctx.font = "bold italic 30px Arial"; // Slightly smaller font
+    // Header (Aligned Left to avoid badge overlap)
+    ctx.font = "bold italic 30px Arial";
     ctx.fillText("RIFT CONTRACTOR", 200, 70);
     
     ctx.fillStyle = accentColor;
     ctx.font = "bold 12px Courier New";
     ctx.fillText(`// ${theme.motto} // AUTH_KEY_99`, 200, 95);
 
-    // Main Stats
+    // Name
     ctx.fillStyle = "#94a3b8"; 
     ctx.font = "12px Courier New";
     ctx.fillText("OPERATIVE NAME", 200, 140);
     
     ctx.fillStyle = "#fff"; 
     ctx.font = "bold 40px Impact"; 
-    ctx.fillText(name.toUpperCase().substring(0, 12), 200, 180);
+    ctx.fillText(name.substring(0, 12), 200, 180);
     
-    // Ability Section
+    // Ability
     ctx.fillStyle = "#94a3b8";
     ctx.font = "12px Courier New";
     ctx.fillText("SPECIAL ABILITY", 200, 220);
@@ -109,8 +138,7 @@ export default function LicenseGenerator() {
     ctx.font = "bold 24px Arial";
     ctx.fillText(ability, 200, 250);
 
-    // --- 6. RANK BADGE (MOVED RIGHT & RESIZED) ---
-    // Moved closer to the edge (520 start instead of 500)
+    // --- RANK BADGE (Dynamic Color) ---
     ctx.beginPath();
     ctx.moveTo(520, 40);
     ctx.lineTo(580, 40);
@@ -121,12 +149,12 @@ export default function LicenseGenerator() {
     ctx.fill();
     
     ctx.fillStyle = "#000";
-    ctx.font = "bold 36px Arial"; // Smaller font for rank letter
+    ctx.font = "bold 36px Arial"; 
     ctx.textAlign = "center";
-    ctx.fillText(rank.charAt(0), 540, 82); // Centered in new badge shape
+    ctx.fillText(rank.charAt(0), 540, 82); 
     ctx.textAlign = "left"; 
 
-    // --- 7. BARCODE & FOOTER ---
+    // --- BARCODE & FOOTER ---
     ctx.fillStyle = "#fff";
     for(let i=50; i<300; i+=5) {
         ctx.fillRect(i, 320, Math.random() > 0.5 ? 2 : 1, 30);
@@ -137,7 +165,7 @@ export default function LicenseGenerator() {
     ctx.fillText(`ID: 882-${Math.floor(Math.random() * 9999)}-X`, 50, 365);
     ctx.fillText("KENYA / SECTOR 4 / AUTHORIZED PERSONNEL ONLY", 300, 365);
 
-    // --- 8. SCANLINES ---
+    // --- SCANLINES ---
     ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
     for (let i = 0; i < 400; i += 4) {
         ctx.fillRect(0, i, 600, 2);
@@ -154,6 +182,8 @@ export default function LicenseGenerator() {
     link.click();
   };
 
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-blue-500 animate-pulse font-mono">CONNECTING TO DATABASE...</div>;
+
   return (
     <div className="min-h-screen bg-[#050505] text-white p-6 flex flex-col items-center justify-center font-sans">
       
@@ -166,7 +196,7 @@ export default function LicenseGenerator() {
         <div className="flex items-center gap-2">
             <Shield className="text-blue-500" />
             <h1 className="text-xl font-bold uppercase tracking-widest">
-                License Generator <span className="text-blue-500">v2.0</span>
+                License Generator <span className="text-blue-500">v3.0</span>
             </h1>
         </div>
       </div>
@@ -176,21 +206,32 @@ export default function LicenseGenerator() {
         {/* INPUT CONTROLS */}
         <div className="bg-gray-900/50 backdrop-blur-md p-8 rounded-3xl border border-gray-800 w-full lg:w-1/3 shadow-2xl">
             <div className="space-y-6">
+                
+                {/* NAME (READ ONLY) */}
                 <div>
-                    <label className="text-xs font-bold text-blue-500 mb-2 block uppercase tracking-wider">Operative Name</label>
-                    <input 
-                        value={name} onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-black border border-gray-700 rounded-lg p-4 text-white font-bold text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition uppercase"
-                        maxLength={12}
-                    />
+                    <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Operative Name</label>
+                    <div className="w-full bg-black/50 border border-gray-700 rounded-lg p-4 text-gray-300 font-bold text-lg uppercase cursor-not-allowed">
+                        {name}
+                    </div>
                 </div>
 
+                {/* RANK & SQUAD */}
                 <div className="grid grid-cols-2 gap-4">
+                    {/* RANK (READ ONLY - Calculated) */}
+                    <div className="bg-black/50 border border-gray-700 rounded-lg p-4 flex flex-col justify-center">
+                        <label className="text-xs font-bold text-gray-500 mb-1 block uppercase tracking-wider">Rank</label>
+                        <div className={`text-3xl font-black uppercase ${rank === 'S-RANK' ? 'text-red-500' : 'text-blue-500'}`}>
+                            {rank}
+                        </div>
+                        <p className="text-xs text-gray-500 font-mono mt-1">{xp} XP EARNED</p>
+                    </div>
+
+                    {/* SQUAD (EDITABLE - Preference) */}
                     <div>
                         <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Squad</label>
                         <select 
                             value={squad} onChange={(e) => setSquad(e.target.value)}
-                            className="w-full bg-black border border-gray-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none appearance-none"
+                            className="w-full h-full bg-black border border-gray-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none appearance-none cursor-pointer hover:border-blue-500/50 transition"
                         >
                             <option>Squad 7</option>
                             <option>Thunder Lord</option>
@@ -198,20 +239,9 @@ export default function LicenseGenerator() {
                             <option>Void Walkers</option>
                         </select>
                     </div>
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Rank</label>
-                        <select 
-                            value={rank} onChange={(e) => setRank(e.target.value)}
-                            className="w-full bg-black border border-gray-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none appearance-none"
-                        >
-                            <option>S-RANK</option>
-                            <option>A-RANK</option>
-                            <option>B-RANK</option>
-                            <option>F-RANK</option>
-                        </select>
-                    </div>
                 </div>
 
+                {/* ABILITY (EDITABLE - Creative) */}
                 <div>
                     <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Unique Ability</label>
                     <input 
@@ -235,7 +265,6 @@ export default function LicenseGenerator() {
         {/* LIVE PREVIEW */}
         <div className="flex-1 flex flex-col items-center">
             <div className="relative group">
-                {/* Glowing Effect behind canvas */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
                 
                 <div className="relative border border-gray-700 rounded-xl overflow-hidden bg-black shadow-2xl">
@@ -250,7 +279,7 @@ export default function LicenseGenerator() {
             
             <p className="mt-6 text-gray-500 text-sm font-mono flex items-center gap-2">
                 <Zap size={14} className="text-yellow-500"/> 
-                SYSTEM READY // INSTANT ISSUE
+                LIVE DATA FEED // SYNCED
             </p>
         </div>
 

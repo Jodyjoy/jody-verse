@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
-import { Shield } from "lucide-react"; // <--- Add Shield
-import { User } from "lucide-react";
+import { ArrowRight, BookOpen, Sparkles, Shield } from "lucide-react";
+import UserBadge from "../components/UserBadge"; // <--- Import the Smart Badge
 
 export default function Home() {
   return (
@@ -12,7 +11,6 @@ export default function Home() {
         {/* Background Gradient & Placeholder Image */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0a]/50 to-[#0a0a0a] z-10" />
         <div className="absolute inset-0 bg-[url('https://placehold.co/1920x1080/1e1e2e/FFF?text=Project+Rift+Art')] bg-cover bg-center opacity-40" />
-        {/* ... inside your Hero buttons div ... */}
 
         {/* Hero Content */}
         <div className="relative z-20 text-center px-4 max-w-5xl mx-auto mt-10">
@@ -27,7 +25,9 @@ export default function Home() {
                 Experience the raw energy of Kenya's first infinite-canvas manga.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {/* ACTION BUTTONS */}
+            <div className="flex flex-wrap gap-4 justify-center items-center">
+                {/* Read Button */}
                 <Link 
                     href="/read" 
                     className="group flex items-center gap-3 px-8 py-4 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all hover:scale-105 shadow-[0_0_40px_rgba(37,99,235,0.3)]"
@@ -35,25 +35,29 @@ export default function Home() {
                     <BookOpen className="group-hover:rotate-12 transition-transform" /> 
                     Start Reading
                 </Link>
-               <Link 
-  href="/wiki" 
-  className="px-8 py-4 rounded-full border border-gray-700 font-bold hover:bg-gray-800 transition"
->
-  View Characters
-</Link>
 
-<Link 
-      href="/login" 
-     className="p-4 rounded-full border border-gray-700 bg-black hover:border-blue-500 hover:text-blue-500 transition"
-     title="Contractor Login"
-    >
-    <User size={20} />
-</Link>
+                {/* Wiki Button */}
+                <Link 
+                  href="/wiki" 
+                  className="px-8 py-4 rounded-full border border-gray-700 font-bold hover:bg-gray-800 transition"
+                >
+                  View Characters
+                </Link>
+
+                {/* License Button */}
+                <Link 
+                    href="/license" 
+                    className="group px-8 py-4 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold hover:bg-blue-500 hover:text-white hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 flex items-center gap-2"
+                >
+                    <Shield size={20} className="group-hover:rotate-12 transition-transform" /> 
+                    <span>Get License</span>
+                </Link>
+
+                {/* SMART USER BADGE (Login/Avatar) */}
+                <UserBadge />
             </div>
         </div>
       </section>
-
-      
 
       {/* 2. TRENDING SECTION (Urithi) */}
       <section className="py-20 px-6 max-w-7xl mx-auto">
@@ -83,15 +87,15 @@ export default function Home() {
                 </div>
             </Link>
 
-           <Link
-            href="/license" 
-            className="group px-8 py-4 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold hover:bg-blue-500 hover:text-white hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 flex items-center gap-2"
-          >
-            <Shield size={20} className="group-hover:rotate-12 transition-transform" /> 
-            <span>Get License</span>
-          </Link>
-
             {/* CARD 2: COMING SOON */}
+            <div className="group relative h-[450px] rounded-3xl overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#161616] transition">
+                <div className="text-center p-8 opacity-50">
+                    <h3 className="text-2xl font-bold text-gray-400 mb-2">Coming Soon</h3>
+                    <p className="text-gray-600 text-sm">More stories loading...</p>
+                </div>
+            </div>
+
+             {/* CARD 3: COMING SOON */}
              <div className="group relative h-[450px] rounded-3xl overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#161616] transition">
                 <div className="text-center p-8 opacity-50">
                     <h3 className="text-2xl font-bold text-gray-400 mb-2">Coming Soon</h3>

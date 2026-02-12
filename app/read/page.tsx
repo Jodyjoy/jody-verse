@@ -34,7 +34,7 @@ export default function MangaIndex() {
         </Link>
         <div>
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
-                PROJECT RIFT: MANGA
+                SPECTRAL RIFT: MANGA
             </h1>
             <p className="text-gray-400 mt-2">Visualizing the flow.</p>
         </div>

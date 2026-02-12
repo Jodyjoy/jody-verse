@@ -1,114 +1,230 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, BookOpen, Sparkles, Shield } from "lucide-react";
-import UserBadge from "../components/UserBadge"; // <--- Import the Smart Badge
+import { ArrowRight, BookOpen, Sparkles, Shield, Zap, Layers, Users } from "lucide-react";
+import UserBadge from "../components/UserBadge";
+import { motion } from "framer-motion"; 
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white selection:bg-blue-500 selection:text-white">
+    <main className="min-h-screen bg-[#0a0a0a] text-white selection:bg-blue-500 selection:text-white overflow-x-hidden">
       
-      {/* 1. HERO SECTION (Project Rift Focus) */}
-      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
-        {/* Background Gradient & Placeholder Image */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0a]/50 to-[#0a0a0a] z-10" />
-        <div className="absolute inset-0 bg-[url('https://placehold.co/1920x1080/1e1e2e/FFF?text=Project+Rift+Art')] bg-cover bg-center opacity-40" />
+      {/* 1. HERO SECTION */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-20">
+        
+        {/* Living Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-purple-900/5 to-black animate-pulse-slow z-0" />
+        <div className="absolute inset-0 bg-[url('https://placehold.co/1920x1080/050505/FFF?text=Spectral+Rift+Art')] bg-cover bg-center opacity-30 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
 
-        {/* Hero Content */}
-        <div className="relative z-20 text-center px-4 max-w-5xl mx-auto mt-10">
-            <span className="inline-block py-1 px-3 rounded-full bg-blue-600/20 text-blue-400 text-sm font-bold tracking-widest mb-6 border border-blue-600/30 backdrop-blur-md">
-                LATEST CHAPTER RELEASED
-            </span>
-            <h1 className="text-7xl md:text-9xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600 drop-shadow-2xl">
-                PROJECT RIFT
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed font-light">
-                In a world where flow dictates power, one punch changes everything. 
-                Experience the raw energy of Kenya's first infinite-canvas manga.
-            </p>
+        <div className="relative z-20 text-center px-4 max-w-6xl mx-auto mt-10">
             
-            {/* ACTION BUTTONS */}
-            <div className="flex flex-wrap gap-4 justify-center items-center">
-                {/* Read Button */}
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.8 }}
+              className="inline-block"
+            >
+                <span className="py-1 px-4 rounded-full bg-blue-500/10 text-blue-400 text-xs md:text-sm font-bold tracking-[0.2em] border border-blue-500/20 backdrop-blur-md mb-6 uppercase">
+                    Infinite Canvas Platform
+                </span>
+            </motion.div>
+
+            <motion.h1 
+              initial={{ opacity: 0, scale: 0.9 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-7xl md:text-[10rem] font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 leading-none"
+            >
+                PROJECT RIFT
+            </motion.h1>
+
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-lg md:text-2xl text-gray-400 mb-10 max-w-3xl mx-auto leading-relaxed font-light"
+            >
+                The home of Kenya's next-gen stories and Manga,
+                <span className="text-purple-500">where the Multiverse meets the Kenyan Pulse.</span>  
+                Dive into the <span className="text-violet-500 font-bold">Spectral Rift</span> manga or explore the lore of <span className="text-violet-500 font-bold">Tales of the 47</span>.
+            </motion.p>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="flex flex-wrap gap-5 justify-center items-center pb-10"
+            >
+                {/* UPDATED HERO BUTTON: SPECIFIC */}
                 <Link 
                     href="/read" 
-                    className="group flex items-center gap-3 px-8 py-4 bg-blue-600 rounded-full font-bold text-lg hover:bg-blue-500 transition-all hover:scale-105 shadow-[0_0_40px_rgba(37,99,235,0.3)]"
+                    className="group relative px-8 py-4 bg-blue-600 rounded-full font-bold text-lg overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(37,99,235,0.5)]"
                 >
-                    <BookOpen className="group-hover:rotate-12 transition-transform" /> 
-                    Start Reading
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                    <span className="relative flex items-center gap-3">
+                       <BookOpen size={20} /> Read "Spectral Rift" (Manga)
+                    </span>
                 </Link>
-
-                {/* Wiki Button */}
+                
                 <Link 
                   href="/wiki" 
-                  className="px-8 py-4 rounded-full border border-gray-700 font-bold hover:bg-gray-800 transition"
+                  className="group px-8 py-4 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-400 font-bold hover:bg-purple-600 hover:text-white hover:shadow-[0_0_30px_rgba(147,51,234,0.5)] transition-all duration-300 flex items-center gap-2"
                 >
-                  View Characters
+                  <Users size={20} className="group-hover:scale-110 transition-transform" />
+                  <span>View Characters</span>
                 </Link>
 
-                {/* License Button */}
                 <Link 
                     href="/license" 
-                    className="group px-8 py-4 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold hover:bg-blue-500 hover:text-white hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all duration-300 flex items-center gap-2"
+                    className="group px-8 py-4 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-bold hover:bg-blue-500 hover:text-white transition-all duration-300 flex items-center gap-2"
                 >
                     <Shield size={20} className="group-hover:rotate-12 transition-transform" /> 
                     <span>Get License</span>
                 </Link>
 
-                {/* SMART USER BADGE (Login/Avatar) */}
                 <UserBadge />
-            </div>
+            </motion.div>
         </div>
       </section>
 
-      {/* 2. TRENDING SECTION (Urithi) */}
-      <section className="py-20 px-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 mb-12">
-            <Sparkles className="text-yellow-400" />
-            <h2 className="text-3xl font-bold tracking-tight">Trending on Jody-verse</h2>
-        </div>
+      {/* 2. MANGA SECTION (New!) */}
+      <section className="py-12 px-6 max-w-7xl mx-auto relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="flex items-center gap-3 mb-12 border-b border-gray-800 pb-4"
+        >
+            <Layers className="text-blue-500" />
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Original Manga</h2>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
-            {/* CARD 1: URITHI (Links to /novel) */}
-            <Link href="/novel" className="group block relative h-[450px] rounded-3xl overflow-hidden bg-gray-900 border border-gray-800 hover:border-gray-600 transition-all duration-500 hover:shadow-2xl hover:shadow-yellow-900/20">
-                {/* Card Background Image */}
-                <div className="absolute inset-0 bg-[url('https://placehold.co/600x800/2a2a2a/FFF?text=Urithi+Cover')] bg-cover bg-center opacity-60 group-hover:scale-110 transition-transform duration-700 ease-in-out" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+            {/* CARD 1: SPECTRAL RIFT (The Flagship) */}
+            <Link href="/read" className="group block relative h-[500px] rounded-[2rem] overflow-hidden bg-gray-900 border border-gray-800 hover:border-blue-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-900/20 perspective-1000">
+                 {/* Image */}
+                <div className="absolute inset-0 bg-[url('/spectral_rift_cover.jpeg')] bg-cover bg-center opacity-80 group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-in-out" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                 
-                {/* Card Text */}
-                <div className="absolute bottom-0 left-0 p-8 w-full translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                    <span className="text-xs font-bold text-yellow-400 uppercase tracking-widest mb-3 block">Novel • Sci-Fi</span>
-                    <h3 className="text-4xl font-bold mb-3 text-white group-hover:text-yellow-400 transition-colors">URITHI</h3>
-                    <p className="text-gray-400 line-clamp-2 text-sm mb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
-                        The awakening has begun. In the heart of Nairobi, ancient bloodlines clash with modern tech.
-                    </p>
-                    <div className="flex items-center text-sm font-bold text-white">
-                        Read Now <ArrowRight size={16} className="ml-2 group-hover:translate-x-2 transition-transform" />
-                    </div>
+                {/* Floating Badge */}
+                <div className="absolute top-6 right-6">
+                     <span className="inline-block py-1 px-3 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded shadow-lg animate-pulse">
+                        New Chapter
+                    </span>
+                </div>
+
+                {/* Content */}
+                <div className="absolute bottom-0 left-0 p-8 w-full">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                        <span className="inline-block py-1 px-3 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-3 border border-blue-500/30 rounded-lg">
+                            Manga • Supernatural • Action
+                        </span>
+                        <h3 className="text-4xl font-black mb-3 text-white italic group-hover:text-blue-400 transition-colors uppercase leading-none">
+                            SPECTRAL <br/> RIFT
+                        </h3>
+                        <p className="text-gray-300 text-sm mb-6 line-clamp-2 border-l-2 border-blue-500 pl-3">
+                            The barrier is broken. Shadows are leaking into Nairobi. Can Squad 7 close the rift before it's too late?
+                        </p>
+                        <div className="flex items-center text-sm font-bold text-white group-hover:translate-x-2 transition-transform">
+                            Start Reading <ArrowRight size={16} className="ml-2" />
+                        </div>
+                    </motion.div>
                 </div>
             </Link>
 
-            {/* CARD 2: COMING SOON */}
-            <div className="group relative h-[450px] rounded-3xl overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#161616] transition">
-                <div className="text-center p-8 opacity-50">
-                    <h3 className="text-2xl font-bold text-gray-400 mb-2">Coming Soon</h3>
-                    <p className="text-gray-600 text-sm">More stories loading...</p>
+            {/* COMING SOON CARD */}
+            <div className="group relative h-[500px] rounded-[2rem] overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#111] transition-colors">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+                <div className="text-center p-8 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <Zap className="mx-auto mb-4 text-gray-600 group-hover:text-blue-500 transition-colors" size={32} />
+                    <h3 className="text-2xl font-bold text-gray-400 mb-2 font-mono group-hover:text-white">Coming Soon</h3>
+                    <p className="text-gray-600 text-xs uppercase tracking-widest">Manga Series #2</p>
                 </div>
             </div>
 
-             {/* CARD 3: COMING SOON */}
-             <div className="group relative h-[450px] rounded-3xl overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#161616] transition">
-                <div className="text-center p-8 opacity-50">
-                    <h3 className="text-2xl font-bold text-gray-400 mb-2">Coming Soon</h3>
-                    <p className="text-gray-600 text-sm">More stories loading...</p>
+             <div className="group relative h-[500px] rounded-[2rem] overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#111] transition-colors">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+                <div className="text-center p-8 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <Zap className="mx-auto mb-4 text-gray-600 group-hover:text-blue-500 transition-colors" size={32} />
+                    <h3 className="text-2xl font-bold text-gray-400 mb-2 font-mono group-hover:text-white">Coming Soon</h3>
+                    <p className="text-gray-600 text-xs uppercase tracking-widest">One-Shot</p>
                 </div>
             </div>
 
         </div>
       </section>
 
-      {/* 3. FOOTER */}
-      <footer className="border-t border-gray-800 py-12 text-center text-gray-600 text-sm">
-        <p>&copy; 2026 Jody-verse. Crafted in Kenya. 🇰🇪</p>
+      {/* 3. NOVELS SECTION */}
+      <section className="py-12 px-6 max-w-7xl mx-auto relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="flex items-center gap-3 mb-12 border-b border-gray-800 pb-4"
+        >
+            <Sparkles className="text-yellow-400" />
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Novels & Folklore</h2>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            {/* CARD 1: TALES OF THE 47 */}
+            <Link href="/novel" className="group block relative h-[500px] rounded-[2rem] overflow-hidden bg-gray-900 border border-gray-800 hover:border-yellow-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-yellow-900/20">
+                <div className="absolute inset-0 bg-[url('https://placehold.co/600x800/1a1a1a/FFF?text=Tales+of+the+47')] bg-cover bg-center opacity-60 group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-in-out" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                
+                <div className="absolute bottom-0 left-0 p-8 w-full">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                        <span className="inline-block py-1 px-3 bg-yellow-500/20 text-yellow-400 text-xs font-bold uppercase tracking-widest mb-3 border border-yellow-500/30 rounded-lg">
+                            Novel • Sci-Fi • Folklore
+                        </span>
+                        <h3 className="text-4xl font-black mb-3 text-white italic group-hover:text-yellow-400 transition-colors uppercase leading-none">
+                            TALES OF <br/> THE 47
+                        </h3>
+                        <p className="text-gray-300 text-sm mb-6 line-clamp-2 border-l-2 border-yellow-500 pl-3">
+                            47 Counties. 47 Legends. One terrifying truth waking up beneath Kenya.
+                        </p>
+                        <div className="flex items-center text-sm font-bold text-white group-hover:translate-x-2 transition-transform">
+                            Read Chapter 1 <ArrowRight size={16} className="ml-2" />
+                        </div>
+                    </motion.div>
+                </div>
+            </Link>
+
+            {/* COMING SOON */}
+            <div className="group relative h-[500px] rounded-[2rem] overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#111] transition-colors">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+                <div className="text-center p-8 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <Zap className="mx-auto mb-4 text-gray-600 group-hover:text-purple-500 transition-colors" size={32} />
+                    <h3 className="text-2xl font-bold text-gray-400 mb-2 font-mono group-hover:text-white">Coming Soon</h3>
+                    <p className="text-gray-600 text-xs uppercase tracking-widest">Lore Book</p>
+                </div>
+            </div>
+
+            <div className="group relative h-[500px] rounded-[2rem] overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#111] transition-colors">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+                <div className="text-center p-8 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <Zap className="mx-auto mb-4 text-gray-600 group-hover:text-purple-500 transition-colors" size={32} />
+                    <h3 className="text-2xl font-bold text-gray-400 mb-2 font-mono group-hover:text-white">Coming Soon</h3>
+                    <p className="text-gray-600 text-xs uppercase tracking-widest">Character Stories</p>
+                </div>
+            </div>
+
+        </div>
+      </section>
+
+      <footer className="border-t border-gray-800 py-12 text-center text-gray-600 text-sm relative z-10 bg-[#0a0a0a]">
+        <p className="font-mono">&copy; 2026 Jody-verse. Crafted in Kenya. 🇰🇪</p>
       </footer>
 
     </main>

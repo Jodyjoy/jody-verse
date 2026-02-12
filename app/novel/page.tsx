@@ -33,7 +33,7 @@ export default function NovelIndex() {
         </Link>
         <div>
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-600">
-                URITHI: BOOK I
+                TALES OF THE 47: BOOK I
             </h1>
             <p className="text-gray-400 mt-2">Select a chapter to begin reading.</p>
         </div>

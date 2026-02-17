@@ -6,12 +6,11 @@ import { supabase } from "../lib/supabaseClient";
 import { useParams, useRouter } from "next/navigation"; 
 import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
-import BookmarkButton from "./BookmarkButton"; // <--- Keeping your new feature
+import BookmarkButton from "./BookmarkButton"; 
 import { motion } from "framer-motion"; 
-import { getRank } from "../lib/gameLogic";
 
 interface MangaPage {
-  id: number;
+  id: number | string;
   url: string;
 }
 
@@ -24,26 +23,60 @@ export default function MangaReader() {
   const [progress, setProgress] = useState(0);
   const [xpAwarded, setXpAwarded] = useState(false);
 
-  // FETCH DATA
+  // FETCH DATA (HYBRID MODE)
   useEffect(() => {
     if (!id) return; 
 
     const fetchPages = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('manga_pages')
-        .select('*')
-        .eq('chapter_id', id)
-        .order('page_number', { ascending: true });
+      
+      let onlineData = null;
+      let fetchError = null;
 
-      if (error) {
-        console.error('Error fetching pages:', error);
-      } else {
-        const formattedPages = data.map((page: any) => ({
+      // 1. TRY ONLINE FETCH
+      try {
+        const { data, error } = await supabase
+          .from('manga_pages')
+          .select('*')
+          .eq('chapter_id', id)
+          .order('page_number', { ascending: true });
+        
+        if (error) fetchError = error;
+        else onlineData = data;
+      } catch (err) {
+        fetchError = err;
+      }
+
+      // 2. DECISION LOGIC
+      if (!fetchError && onlineData && onlineData.length > 0) {
+        // ✅ ONLINE: Success
+        const formattedPages = onlineData.map((page: any) => ({
             id: page.id,
             url: page.image_url
         }));
         setPages(formattedPages);
+      } else {
+        // ⚠️ OFFLINE FALLBACK: Check Local Storage
+        console.log("Supabase unreachable or empty. Checking offline library...");
+        
+        const offlineData = localStorage.getItem('offline_library');
+        if (offlineData) {
+            const library = JSON.parse(offlineData);
+            
+            const savedChapter = library.find((c: any) => String(c.chapter_number) === String(id));
+
+            if (savedChapter && savedChapter.pages) {
+                console.log("🎯 Found saved offline map for Chapter", id);
+                
+                const formattedPages = savedChapter.pages.map((url: string, index: number) => ({
+                    id: `offline-${index}`,
+                    url: url
+                }));
+                setPages(formattedPages);
+            } else {
+                console.error("❌ Chapter not found in offline library.");
+            }
+        }
       }
       setLoading(false);
     };
@@ -51,18 +84,15 @@ export default function MangaReader() {
     fetchPages();
   }, [id]);
 
-  // XP SYSTEM: Award XP when they reach the end (90% scroll)
+  // XP SYSTEM
   useEffect(() => {
     if (progress > 90 && !xpAwarded) {
         const awardXP = async () => {
-            setXpAwarded(true); // Stop duplicate awards
-            
+            setXpAwarded(true); 
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                // Call the SQL function we made
                 await supabase.rpc('add_xp', { amount: 50 });
                 console.log("Create +50 XP!"); 
-                // You could add a toast notification here later!
             }
         };
         awardXP();
@@ -89,24 +119,21 @@ export default function MangaReader() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center overflow-x-hidden">
       
-      {/* --- HEADER (FIXED: NO DUPLICATES) --- */}
+      {/* HEADER */}
       <motion.div 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
         className="fixed top-0 left-0 w-full h-14 bg-black/80 backdrop-blur-md z-50 flex items-center justify-between px-4 border-b border-gray-800"
       >
-        {/* LEFT: Back Button */}
         <button onClick={() => router.push('/read')} className="text-white hover:text-blue-500 transition">
             <ArrowLeft size={24} />
         </button>
 
-        {/* CENTER: Title */}
         <span className="text-white font-bold tracking-widest text-sm md:text-base absolute left-1/2 transform -translate-x-1/2">
             PROJECT RIFT: CH {id}
         </span>
 
-        {/* RIGHT: Controls (Bookmark + Menu) */}
         <div className="flex items-center gap-3">
             <BookmarkButton slug={`manga-${id}`} title={`Chapter ${id}`} type="manga" />
             <button className="text-white hover:text-blue-500 transition">
@@ -114,7 +141,6 @@ export default function MangaReader() {
             </button>
         </div>
 
-        {/* Progress Bar */}
         <div 
           className="absolute bottom-0 left-0 h-[2px] bg-blue-500 transition-all duration-100 ease-out"
           style={{ width: `${progress}%` }}
@@ -138,11 +164,9 @@ export default function MangaReader() {
                       src={page.url} 
                       alt={`Page ${index + 1}`} 
                       className="w-full h-auto block" 
+                      crossOrigin="anonymous" // 👈 Helps with Cache/CORS access
                       loading={index < 2 ? "eager" : "lazy"}
                       fetchPriority={index === 0 ? "high" : "auto"}
-                      variants={{
-                        shake: { x: [-5, 5, -5, 5, 0], transition: { duration: 0.2 } }
-                      }}
                       whileHover={{ cursor: "pointer" }}
                       onClick={(e) => {
                         const target = e.currentTarget;
@@ -174,7 +198,7 @@ export default function MangaReader() {
          <CommentSection slug={`manga-${id}`} />
       </motion.div>
 
-      {/* FOOTER BUTTONS */}
+      {/* FOOTER */}
       <div className="w-full max-w-2xl px-6 py-10 flex justify-between text-white border-t border-gray-800">
         <button 
             onClick={() => router.push(`/read/${Number(id) - 1}`)}

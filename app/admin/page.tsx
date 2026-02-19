@@ -106,6 +106,7 @@ export default function AdminPage() {
         const { error: dbError } = await supabase
             .from('manga_pages')
             .insert([{
+                manga_id: mangaId,     // 👈 THE MISSING LINK! 
                 chapter_id: chapterId, 
                 page_number: i + 1,
                 image_url: publicUrl

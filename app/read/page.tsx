@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // 👈 NEW: Import Suspense
 import Link from "next/link";
 import { ArrowLeft, Trash2, BookOpen } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import DownloadButton from "../../components/DownloadButton"; 
-import { useSearchParams, useRouter } from "next/navigation"; // 👈 Added navigation hooks
+import { useSearchParams, useRouter } from "next/navigation"; 
 
-export default function MangaIndex() {
+// 1. Rename your main function to an inner component
+function LibraryContent() {
   const searchParams = useSearchParams();
   const urlMangaId = searchParams.get('manga');
   
   const [chapters, setChapters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // 👈 NEW: Default to the URL parameter if it exists, otherwise Spectral Rift (1)
   const [activeManga, setActiveManga] = useState<number>(urlMangaId ? parseInt(urlMangaId) : 1); 
 
   const clearAllOffline = async () => {
@@ -62,7 +62,6 @@ export default function MangaIndex() {
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-12">
       <div className="max-w-4xl mx-auto mb-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-            {/* 👈 Back arrow returns to Home */}
             <Link href="/" className="p-3 bg-gray-900 rounded-full hover:bg-gray-800 transition">
                 <ArrowLeft size={24} />
             </Link>
@@ -136,5 +135,14 @@ export default function MangaIndex() {
         )}
       </div>
     </div>
+  );
+}
+
+// 2. Wrap it all in Suspense for the default export!
+export default function MangaIndex() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-blue-500">Loading Library...</div>}>
+      <LibraryContent />
+    </Suspense>
   );
 }

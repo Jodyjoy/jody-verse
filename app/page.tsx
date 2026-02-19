@@ -56,14 +56,13 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="flex flex-wrap gap-5 justify-center items-center pb-10"
             >
-                {/* UPDATED HERO BUTTON: SPECIFIC */}
                 <Link 
                     href="/read" 
                     className="group relative px-8 py-4 bg-blue-600 rounded-full font-bold text-lg overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(37,99,235,0.5)]"
                 >
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                     <span className="relative flex items-center gap-3">
-                       <BookOpen size={20} /> Read "Spectral Rift" (Manga)
+                       <BookOpen size={20} /> Enter the Library
                     </span>
                 </Link>
                 
@@ -88,7 +87,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. MANGA SECTION (New!) */}
+      {/* 2. MANGA SECTION */}
       <section className="py-12 px-6 max-w-7xl mx-auto relative z-10">
         <motion.div 
           initial={{ opacity: 0, x: -50 }}
@@ -102,20 +101,18 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
-            {/* CARD 1: SPECTRAL RIFT (The Flagship) */}
-            <Link href="/read" className="group block relative h-[500px] rounded-[2rem] overflow-hidden bg-gray-900 border border-gray-800 hover:border-blue-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-900/20 perspective-1000">
-                 {/* Image */}
+            {/* CARD 1: SPECTRAL RIFT */}
+            {/* 👇 DIRECT LINK TO SPECTRAL RIFT CH 1 */}
+            <Link href="/read?manga=1" className="group block relative h-[500px] rounded-[2rem] overflow-hidden bg-gray-900 border border-gray-800 hover:border-blue-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-900/20 perspective-1000">
                 <div className="absolute inset-0 bg-[url('/spectral_rift_cover.jpeg')] bg-cover bg-center opacity-80 group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-in-out" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                 
-                {/* Floating Badge */}
                 <div className="absolute top-6 right-6">
                      <span className="inline-block py-1 px-3 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded shadow-lg animate-pulse">
                         New Chapter
                     </span>
                 </div>
 
-                {/* Content */}
                 <div className="absolute bottom-0 left-0 p-8 w-full">
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
@@ -132,22 +129,48 @@ export default function Home() {
                             The barrier is broken. Shadows are leaking into Nairobi. Can Squad 7 close the rift before it's too late?
                         </p>
                         <div className="flex items-center text-sm font-bold text-white group-hover:translate-x-2 transition-transform">
-                            Start Reading <ArrowRight size={16} className="ml-2" />
+                            Read Spectral Rift <ArrowRight size={16} className="ml-2" />
                         </div>
                     </motion.div>
                 </div>
             </Link>
 
-            {/* COMING SOON CARD */}
-            <div className="group relative h-[500px] rounded-[2rem] overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#111] transition-colors">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
-                <div className="text-center p-8 opacity-40 group-hover:opacity-100 transition-opacity">
-                    <Zap className="mx-auto mb-4 text-gray-600 group-hover:text-blue-500 transition-colors" size={32} />
-                    <h3 className="text-2xl font-bold text-gray-400 mb-2 font-mono group-hover:text-white">Coming Soon</h3>
-                    <p className="text-gray-600 text-xs uppercase tracking-widest">Manga Series #2</p>
+            {/* CARD 2: URITHI */}
+            {/* 👇 DIRECT LINK TO URITHI CH 1 */}
+            <Link href="/read?manga=2" className="group block relative h-[500px] rounded-[2rem] overflow-hidden bg-gray-900 border border-gray-800 hover:border-purple-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-900/20 perspective-1000">
+                {/* ✅ NEW COVER */}
+                <div className="absolute inset-0 bg-[url('/urithi_cover.jpeg')] bg-cover bg-center opacity-80 group-hover:scale-110 group-hover:-rotate-1 transition-transform duration-700 ease-in-out" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                
+                <div className="absolute top-6 right-6">
+                     <span className="inline-block py-1 px-3 bg-purple-600 text-white text-xs font-bold uppercase tracking-widest rounded shadow-lg animate-pulse">
+                        New Release
+                    </span>
                 </div>
-            </div>
 
+                <div className="absolute bottom-0 left-0 p-8 w-full">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                        <span className="inline-block py-1 px-3 bg-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-widest mb-3 border border-purple-500/30 rounded-lg">
+                            Manga • Fantasy • Heritage
+                        </span>
+                        <h3 className="text-4xl font-black mb-3 text-white italic group-hover:text-purple-400 transition-colors uppercase leading-none">
+                            URITHI
+                        </h3>
+                        <p className="text-gray-300 text-sm mb-6 line-clamp-2 border-l-2 border-purple-500 pl-3">
+                            The new legacy begins. Discover the ancient bloodlines and powers hidden within the modern world.
+                        </p>
+                        <div className="flex items-center text-sm font-bold text-white group-hover:translate-x-2 transition-transform">
+                            Read Urithi <ArrowRight size={16} className="ml-2" />
+                        </div>
+                    </motion.div>
+                </div>
+            </Link>
+
+             {/* COMING SOON CARD */}
              <div className="group relative h-[500px] rounded-[2rem] overflow-hidden bg-[#0f0f0f] border border-gray-800 border-dashed flex items-center justify-center hover:bg-[#111] transition-colors">
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
                 <div className="text-center p-8 opacity-40 group-hover:opacity-100 transition-opacity">

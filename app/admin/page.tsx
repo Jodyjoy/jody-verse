@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [novelContent, setNovelContent] = useState("");
   
   // --- MANGA STATE ---
+  const [selectedMangaId, setSelectedMangaId] = useState("1"); // 👈 NEW: Default to 1 (Spectral Rift)
   const [mangaChapter, setMangaChapter] = useState("");
   const [mangaFiles, setMangaFiles] = useState<FileList | null>(null);
 
@@ -59,7 +60,7 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // 3. MANGA BATCH UPLOAD (Updated logic)
+  // 3. MANGA BATCH UPLOAD (Upgraded for Multiverse)
   const handleMangaUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mangaFiles || mangaFiles.length === 0) return;
@@ -68,24 +69,26 @@ export default function AdminPage() {
     setMessage("⏳ Registering chapter & uploading pages...");
 
     const chapterId = parseInt(mangaChapter);
+    const mangaId = parseInt(selectedMangaId);
     let successCount = 0;
 
-    // A. REGISTER CHAPTER (If it doesn't exist)
-    // We try to insert. If it fails (duplicate), that's fine, we just move on.
-    const { error: chapterError } = await supabase
+    // A. REGISTER CHAPTER with manga_id
+    const { data: chapterData, error: chapterError } = await supabase
         .from('manga_chapters')
         .insert([{ 
+            manga_id: mangaId, // 👈 NEW: Links to Spectral Rift or Urithi
             chapter_number: chapterId, 
-            title: `Chapter ${chapterId}` // Default title
+            title: `Chapter ${chapterId}` 
         }])
         .select();
 
-    // Loop through every file
+    // B. UPLOAD PAGES
     for (let i = 0; i < mangaFiles.length; i++) {
         const file = mangaFiles[i];
-        const filePath = `ch-${chapterId}/${Date.now()}-${file.name}`;
+        
+        // 👈 NEW: Separating images into different folders by manga ID
+        const filePath = `manga-${mangaId}/ch-${chapterId}/${Date.now()}-${file.name}`;
 
-        // B. Upload Image
         const { error: uploadError } = await supabase.storage
             .from('manga-pages')
             .upload(filePath, file);
@@ -95,16 +98,15 @@ export default function AdminPage() {
             continue;
         }
 
-        // C. Get URL
         const { data: { publicUrl } } = supabase.storage
             .from('manga-pages')
             .getPublicUrl(filePath);
 
-        // D. Insert Page Record
+        // For now, we keep chapter_id as chapterId to match your current DB setup
         const { error: dbError } = await supabase
             .from('manga_pages')
             .insert([{
-                chapter_id: chapterId,
+                chapter_id: chapterId, 
                 page_number: i + 1,
                 image_url: publicUrl
             }]);
@@ -112,13 +114,13 @@ export default function AdminPage() {
         if (!dbError) successCount++;
     }
 
-    setMessage(`✅ Registered Chapter ${chapterId} and uploaded ${successCount} pages!`);
+    const mangaName = mangaId === 1 ? "Spectral Rift" : "Urithi";
+    setMessage(`✅ Registered ${mangaName} Chapter ${chapterId} and uploaded ${successCount} pages!`);
     setLoading(false);
     setMangaFiles(null);
     setMangaChapter("");
   };
 
-  // --- LOGIN SCREEN ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -139,12 +141,10 @@ export default function AdminPage() {
     );
   }
 
-  // --- DASHBOARD SCREEN ---
   return (
     <div className="min-h-screen bg-black text-white p-6 md:p-12">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header & Tabs */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 border-b border-gray-800 pb-6">
             <h1 className="text-3xl font-bold flex items-center gap-2">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Admin Dashboard</span>
@@ -165,7 +165,6 @@ export default function AdminPage() {
             </div>
         </div>
 
-        {/* Feedback Message */}
         {message && (
             <div className={`p-4 rounded-lg mb-6 flex items-center gap-3 animate-fade-in ${message.includes("Error") ? "bg-red-900/50 text-red-200" : "bg-green-900/50 text-green-200"}`}>
                 {loading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
@@ -173,7 +172,7 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* --- TAB 1: NOVEL EDITOR --- */}
+        {/* --- NOVEL TAB --- */}
         {activeTab === 'novel' && (
             <form onSubmit={handleNovelUpload} className="space-y-6 animate-fade-in">
                 <div className="flex items-center gap-3 mb-4 text-blue-400">
@@ -202,11 +201,23 @@ export default function AdminPage() {
             </form>
         )}
 
-        {/* --- TAB 2: MANGA UPLOADER --- */}
+        {/* --- MANGA TAB --- */}
         {activeTab === 'manga' && (
             <form onSubmit={handleMangaUpload} className="space-y-6 animate-fade-in">
-                <div className="flex items-center gap-3 mb-4 text-purple-400">
-                    <ImageIcon size={24} /> <h2 className="text-xl font-bold">New Manga Release</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3 text-purple-400">
+                        <ImageIcon size={24} /> <h2 className="text-xl font-bold">New Manga Release</h2>
+                    </div>
+                    
+                    {/* 👈 NEW: PROJECT SELECTOR DROPDOWN */}
+                    <select 
+                        value={selectedMangaId}
+                        onChange={(e) => setSelectedMangaId(e.target.value)}
+                        className="bg-gray-800 border border-purple-500 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5 outline-none font-bold"
+                    >
+                        <option value="1">📖 Spectral Rift</option>
+                        <option value="2">🗡️ Urithi</option>
+                    </select>
                 </div>
 
                 <div className="bg-gray-900 border border-dashed border-gray-700 rounded-xl p-8 text-center">
@@ -224,7 +235,7 @@ export default function AdminPage() {
                 <div>
                     <label className="block text-sm font-bold text-gray-400 mb-2">Chapter Number</label>
                     <input type="number" required className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 outline-none focus:border-purple-500 transition"
-                        placeholder="e.g. 5" value={mangaChapter} onChange={(e) => setMangaChapter(e.target.value)} />
+                        placeholder="e.g. 1" value={mangaChapter} onChange={(e) => setMangaChapter(e.target.value)} />
                 </div>
 
                 <button disabled={loading} className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-4 rounded-lg transition flex items-center justify-center gap-2">

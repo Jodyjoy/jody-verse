@@ -4,39 +4,40 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 interface DownloadButtonProps {
+  mangaId: number; // 👈 NEW: We now require the Manga ID
   chapterId: number;
   chapterNumber: string;
   title?: string;
 }
 
-export default function DownloadButton({ chapterId, chapterNumber, title }: DownloadButtonProps) {
+export default function DownloadButton({ mangaId, chapterId, chapterNumber, title }: DownloadButtonProps) {
   const [status, setStatus] = useState<'idle' | 'fetching' | 'downloading' | 'saved' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
 
-  // 1. Check if already saved on load
+  // 👉 NEW CACHE NAME: Includes mangaId to prevent overwriting
+  const getCacheName = () => `manga-${mangaId}-chapter-${chapterNumber}`;
+
   useEffect(() => {
     const checkCache = async () => {
-      const cacheName = `manga-chapter-${chapterNumber}`;
-      if (typeof window !== 'undefined' && await window.caches.has(cacheName)) {
+      if (typeof window !== 'undefined' && await window.caches.has(getCacheName())) {
         setStatus('saved');
       }
     };
     checkCache();
-  }, [chapterNumber]);
+  }, [mangaId, chapterNumber]);
 
-  // NEW: Delete functionality to free up space
   const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent Link from triggering
+    e.stopPropagation();
     if (!confirm(`Remove Chapter ${chapterNumber} from offline?`)) return;
 
     try {
-      // 1. Clear actual images from Browser Cache
-      const cacheName = `manga-chapter-${chapterNumber}`;
-      await window.caches.delete(cacheName);
+      await window.caches.delete(getCacheName());
 
-      // 2. Remove metadata from LocalStorage
       const currentLibrary = JSON.parse(localStorage.getItem('offline_library') || '[]');
-      const updatedLibrary = currentLibrary.filter((c: any) => String(c.chapter_number) !== String(chapterNumber));
+      // Filter out this specific manga's chapter
+      const updatedLibrary = currentLibrary.filter((c: any) => 
+        !(String(c.chapter_number) === String(chapterNumber) && String(c.manga_id) === String(mangaId))
+      );
       localStorage.setItem('offline_library', JSON.stringify(updatedLibrary));
 
       setStatus('idle');
@@ -45,17 +46,19 @@ export default function DownloadButton({ chapterId, chapterNumber, title }: Down
     }
   };
 
-const handleDownload = async () => {
+  const handleDownload = async () => {
     try {
       setStatus('fetching');
 
+      // 👈 NEW: Fetch pages using BOTH manga_id and chapter_id
       const { data: pages, error } = await supabase
         .from('manga_pages') 
         .select('image_url')
+        .eq('manga_id', mangaId)
         .eq('chapter_id', chapterId);
 
       if (error || !pages || pages.length === 0) {
-        alert('No pages found!');
+        alert('No pages found for this specific manga!');
         setStatus('idle');
         return;
       }
@@ -63,38 +66,28 @@ const handleDownload = async () => {
       const imageUrls = pages.map(p => p.image_url);
       setStatus('downloading');
       
-      const cacheName = `manga-chapter-${chapterNumber}`;
-      const cache = await window.caches.open(cacheName);
-      
+      const cache = await window.caches.open(getCacheName());
       let count = 0;
 
-      // 🔄 Sequential Download: One by one to prevent missing pages
       for (const url of imageUrls) {
         try {
-          // Check if it's already in cache first
           const existing = await cache.match(url);
           if (!existing) {
-            const response = await fetch(url, { 
-              mode: 'cors',
-              cache: 'reload' // Forces a fresh copy from Supabase
-            });
-
+            const response = await fetch(url, { mode: 'cors', cache: 'reload' });
             if (!response.ok) throw new Error("Fetch failed");
             await cache.put(url, response);
           }
-          
           count++;
           setProgress(Math.round((count / imageUrls.length) * 100));
         } catch (err) {
           console.error(`❌ Failed page ${count + 1}:`, err);
-          // If a page fails, we stop and show an error so you know it's not complete
           setStatus('error');
           return; 
         }
       }
 
-      // SAVE THE MAP (Only if all images finished)
       const chapterInfo = {
+        manga_id: mangaId, // 👈 NEW: Save manga ID to local storage
         id: chapterId,
         chapter_number: chapterNumber,
         title: title || `Chapter ${chapterNumber}`,
@@ -104,7 +97,9 @@ const handleDownload = async () => {
 
       const currentLibrary = JSON.parse(localStorage.getItem('offline_library') || '[]');
       const updatedLibrary = [
-        ...currentLibrary.filter((c: any) => String(c.chapter_number) !== String(chapterNumber)),
+        ...currentLibrary.filter((c: any) => 
+          !(String(c.chapter_number) === String(chapterNumber) && String(c.manga_id) === String(mangaId))
+        ),
         chapterInfo
       ];
       localStorage.setItem('offline_library', JSON.stringify(updatedLibrary));
@@ -122,10 +117,7 @@ const handleDownload = async () => {
       disabled={status === 'downloading' || status === 'fetching'} 
       className={`
         px-3 py-1.5 rounded-lg font-bold text-xs transition-all z-20
-        ${status === 'saved' 
-          ? 'bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40' 
-          : 'bg-gray-800 text-gray-200 hover:bg-gray-700 border border-gray-700'
-        }
+        ${status === 'saved' ? 'bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40' : 'bg-gray-800 text-gray-200 hover:bg-gray-700 border border-gray-700'}
         ${status === 'fetching' || status === 'downloading' ? 'opacity-75 cursor-wait' : ''}
       `}
     >

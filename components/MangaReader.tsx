@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Menu } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import { useParams, useRouter, useSearchParams } from "next/navigation"; // 👈 Added useSearchParams
+import { useParams, useRouter, useSearchParams } from "next/navigation"; 
 import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
 import BookmarkButton from "./BookmarkButton"; 
@@ -18,21 +18,18 @@ export default function MangaReader() {
   const { id } = useParams();
   const router = useRouter();
   
-  // 👈 NEW: Grab the manga ID from the URL (e.g., ?manga=2)
   const searchParams = useSearchParams();
-  const mangaId = searchParams.get('manga') || "1"; // Default to Spectral Rift (1)
+  const mangaId = searchParams.get('manga') || "1"; 
 
   const [pages, setPages] = useState<MangaPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [xpAwarded, setXpAwarded] = useState(false);
 
-  // Dynamic Title for Header
   const mangaTitle = mangaId === "1" ? "SPECTRAL RIFT" : "URITHI";
-  // Dynamic Slug to keep comments and bookmarks isolated between mangas
   const uniqueSlug = `manga-${mangaId}-ch-${id}`;
 
-  // FETCH DATA (HYBRID MODE)
+  // FETCH DATA (HYBRID MODE WITH BLOB EXTRACTION)
   useEffect(() => {
     if (!id) return; 
 
@@ -47,7 +44,7 @@ export default function MangaReader() {
         const { data, error } = await supabase
           .from('manga_pages')
           .select('*')
-          .eq('manga_id', mangaId) // 👈 IT NOW CHECKS MANGA ID
+          .eq('manga_id', mangaId) 
           .eq('chapter_id', id)
           .order('page_number', { ascending: true });
         
@@ -66,14 +63,13 @@ export default function MangaReader() {
         }));
         setPages(formattedPages);
       } else {
-        // ⚠️ OFFLINE FALLBACK: Check Local Storage
-        console.log("Supabase unreachable or empty. Checking offline library...");
+        // ⚠️ OFFLINE FALLBACK: Extract Blobs from Cache
+        console.log("Supabase unreachable. Checking offline library...");
         
         const offlineData = localStorage.getItem('offline_library');
         if (offlineData) {
             const library = JSON.parse(offlineData);
             
-            // 👈 IT CHECKS OFFLINE BY BOTH MANGA ID AND CHAPTER ID
             const savedChapter = library.find((c: any) => 
                 String(c.chapter_number) === String(id) &&
                 String(c.manga_id) === String(mangaId)
@@ -82,10 +78,37 @@ export default function MangaReader() {
             if (savedChapter && savedChapter.pages) {
                 console.log(`🎯 Found saved offline map for ${mangaTitle} Chapter`, id);
                 
-                const formattedPages = savedChapter.pages.map((url: string, index: number) => ({
-                    id: `offline-${index}`,
-                    url: url
+                // 👇 Open the specific cache for this chapter
+                const cacheName = `manga-${mangaId}-chapter-${id}`;
+                let cache: Cache | null = null;
+                try {
+                    cache = await window.caches.open(cacheName);
+                } catch (e) {
+                    console.error("Could not open cache", e);
+                }
+
+                // 👇 Loop through pages and convert cached files into local Blob URLs
+                const formattedPages = await Promise.all(savedChapter.pages.map(async (url: string, index: number) => {
+                    let finalUrl = url; // Default to the online URL
+                    
+                    if (cache) {
+                        try {
+                            const cachedResponse = await cache.match(url);
+                            if (cachedResponse) {
+                                const blob = await cachedResponse.blob();
+                                finalUrl = URL.createObjectURL(blob); // Creates a fast, local URL!
+                            }
+                        } catch (err) {
+                            console.error(`Failed to load cached page ${index + 1}`, err);
+                        }
+                    }
+
+                    return {
+                        id: `offline-${index}`,
+                        url: finalUrl
+                    };
                 }));
+
                 setPages(formattedPages);
             } else {
                 console.error("❌ Chapter not found in offline library.");
@@ -144,13 +167,11 @@ export default function MangaReader() {
         <ArrowLeft size={24} />
         </button>
 
-        {/* 👈 Dynamic Title based on Universe */}
         <span className="text-white font-bold tracking-widest text-sm md:text-base absolute left-1/2 transform -translate-x-1/2">
             {mangaTitle}: CH {id}
         </span>
 
         <div className="flex items-center gap-3">
-            {/* 👈 Uses uniqueSlug so bookmarks don't mix up chapters */}
             <BookmarkButton slug={uniqueSlug} title={`${mangaTitle} Ch ${id}`} type="manga" />
             <button className="text-white hover:text-blue-500 transition">
                 <Menu size={24} />
@@ -180,7 +201,7 @@ export default function MangaReader() {
                       src={page.url} 
                       alt={`Page ${index + 1}`} 
                       className="w-full h-auto block" 
-                      crossOrigin="anonymous" 
+                      // 👈 Removed crossOrigin="anonymous" here so local blob URLs don't break!
                       loading={index < 2 ? "eager" : "lazy"}
                       fetchPriority={index === 0 ? "high" : "auto"}
                       whileHover={{ cursor: "pointer" }}
@@ -210,7 +231,6 @@ export default function MangaReader() {
         transition={{ delay: 0.2 }}
         className="w-full max-w-2xl px-6 mt-4 mb-10"
       >
-         {/* 👈 Uses uniqueSlug so comments are separated for Urithi and Spectral Rift */}
          <SocialStats slug={uniqueSlug} />
          <CommentSection slug={uniqueSlug} />
       </motion.div>
@@ -218,7 +238,6 @@ export default function MangaReader() {
       {/* FOOTER */}
       <div className="w-full max-w-2xl px-6 py-10 flex justify-between text-white border-t border-gray-800">
         <button 
-            // 👈 Passes ?manga= ID to the Prev button
             onClick={() => router.push(`/read/${Number(id) - 1}?manga=${mangaId}`)}
             disabled={Number(id) <= 1}
             className="flex items-center gap-2 px-6 py-3 border border-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-900 transition"
@@ -226,7 +245,6 @@ export default function MangaReader() {
           <ArrowLeft size={18} /> Prev
         </button>
         <button 
-            // 👈 Passes ?manga= ID to the Next button
             onClick={() => router.push(`/read/${Number(id) + 1}?manga=${mangaId}`)}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 rounded-lg font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-900/50 transition"
         >

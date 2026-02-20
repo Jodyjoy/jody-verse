@@ -1,119 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useDownload } from './DownloadProvider'; // 👈 Connect to the global engine
 
 interface DownloadButtonProps {
-  mangaId: number; // 👈 NEW: We now require the Manga ID
+  mangaId: number;
   chapterId: number;
   chapterNumber: string;
   title?: string;
 }
 
 export default function DownloadButton({ mangaId, chapterId, chapterNumber, title }: DownloadButtonProps) {
-  const [status, setStatus] = useState<'idle' | 'fetching' | 'downloading' | 'saved' | 'error'>('idle');
-  const [progress, setProgress] = useState(0);
+  // Pull the engine controls from context
+  const { startDownload, deleteDownload, checkStatus } = useDownload();
+  
+  // Get the current status for THIS specific chapter
+  const { status, progress } = checkStatus(mangaId, chapterNumber);
 
-  // 👉 NEW CACHE NAME: Includes mangaId to prevent overwriting
-  const getCacheName = () => `manga-${mangaId}-chapter-${chapterNumber}`;
-
-  useEffect(() => {
-    const checkCache = async () => {
-      if (typeof window !== 'undefined' && await window.caches.has(getCacheName())) {
-        setStatus('saved');
-      }
-    };
-    checkCache();
-  }, [mangaId, chapterNumber]);
-
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleAction = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`Remove Chapter ${chapterNumber} from offline?`)) return;
-
-    try {
-      await window.caches.delete(getCacheName());
-
-      const currentLibrary = JSON.parse(localStorage.getItem('offline_library') || '[]');
-      // Filter out this specific manga's chapter
-      const updatedLibrary = currentLibrary.filter((c: any) => 
-        !(String(c.chapter_number) === String(chapterNumber) && String(c.manga_id) === String(mangaId))
-      );
-      localStorage.setItem('offline_library', JSON.stringify(updatedLibrary));
-
-      setStatus('idle');
-    } catch (err) {
-      console.error("Delete failed", err);
-    }
-  };
-
-  const handleDownload = async () => {
-    try {
-      setStatus('fetching');
-
-      // 👈 NEW: Fetch pages using BOTH manga_id and chapter_id
-      const { data: pages, error } = await supabase
-        .from('manga_pages') 
-        .select('image_url')
-        .eq('manga_id', mangaId)
-        .eq('chapter_id', chapterId);
-
-      if (error || !pages || pages.length === 0) {
-        alert('No pages found for this specific manga!');
-        setStatus('idle');
-        return;
+    
+    if (status === 'saved') {
+      if (confirm(`Remove Chapter ${chapterNumber} from offline?`)) {
+        deleteDownload(mangaId, chapterNumber);
       }
-
-      const imageUrls = pages.map(p => p.image_url);
-      setStatus('downloading');
-      
-      const cache = await window.caches.open(getCacheName());
-      let count = 0;
-
-      for (const url of imageUrls) {
-        try {
-          const existing = await cache.match(url);
-          if (!existing) {
-            const response = await fetch(url, { mode: 'cors', cache: 'reload' });
-            if (!response.ok) throw new Error("Fetch failed");
-            await cache.put(url, response);
-          }
-          count++;
-          setProgress(Math.round((count / imageUrls.length) * 100));
-        } catch (err) {
-          console.error(`❌ Failed page ${count + 1}:`, err);
-          setStatus('error');
-          return; 
-        }
-      }
-
-      const chapterInfo = {
-        manga_id: mangaId, // 👈 NEW: Save manga ID to local storage
-        id: chapterId,
-        chapter_number: chapterNumber,
-        title: title || `Chapter ${chapterNumber}`,
-        offline: true,
-        pages: imageUrls 
-      };
-
-      const currentLibrary = JSON.parse(localStorage.getItem('offline_library') || '[]');
-      const updatedLibrary = [
-        ...currentLibrary.filter((c: any) => 
-          !(String(c.chapter_number) === String(chapterNumber) && String(c.manga_id) === String(mangaId))
-        ),
-        chapterInfo
-      ];
-      localStorage.setItem('offline_library', JSON.stringify(updatedLibrary));
-
-      setStatus('saved');
-    } catch (error) {
-      console.error('Download process crashed:', error);
-      setStatus('error');
+    } else if (status === 'idle' || status === 'error') {
+      startDownload(mangaId, chapterId, chapterNumber, title);
     }
   };
 
   return (
     <button 
-      onClick={status === 'saved' ? handleDelete : handleDownload}
+      onClick={handleAction}
       disabled={status === 'downloading' || status === 'fetching'} 
       className={`
         px-3 py-1.5 rounded-lg font-bold text-xs transition-all z-20

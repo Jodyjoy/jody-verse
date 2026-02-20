@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { DownloadProvider } from "../components/DownloadProvider"; // 👈 NEW: Imported the engine
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,7 +54,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        {/* 👇 Wrapped your entire app in the background download engine 👇 */}
+        <DownloadProvider>
+          {children}
+        </DownloadProvider>
       </body>
     </html>
   );

@@ -67,6 +67,10 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     updateDownload(cacheName, { status: 'fetching', progress: 0 });
 
     try {
+      // 👇 THE FIX: Silently fetch the page route so the PWA saves the HTML blueprint
+      const pageUrl = `/read/${chapterId}?manga=${mangaId}`;
+      fetch(pageUrl).catch(() => console.log("Silent route fetch skipped"));
+
       const { data: pages, error } = await supabase
         .from('manga_pages') 
         .select('image_url')

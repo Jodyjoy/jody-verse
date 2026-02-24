@@ -16,7 +16,7 @@ export default function AdminPage() {
   const [novelContent, setNovelContent] = useState("");
   
   // --- MANGA STATE ---
-  const [selectedMangaId, setSelectedMangaId] = useState("1"); // 👈 NEW: Default to 1 (Spectral Rift)
+  const [selectedMangaId, setSelectedMangaId] = useState("1"); 
   const [mangaChapter, setMangaChapter] = useState("");
   const [mangaFiles, setMangaFiles] = useState<FileList | null>(null);
 
@@ -60,7 +60,7 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // 3. MANGA BATCH UPLOAD (Upgraded for Multiverse)
+  // 3. MANGA BATCH UPLOAD (Upgraded for Multiverse + Push Notifications)
   const handleMangaUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mangaFiles || mangaFiles.length === 0) return;
@@ -72,11 +72,11 @@ export default function AdminPage() {
     const mangaId = parseInt(selectedMangaId);
     let successCount = 0;
 
-    // A. REGISTER CHAPTER with manga_id
+    // A. REGISTER CHAPTER
     const { data: chapterData, error: chapterError } = await supabase
         .from('manga_chapters')
         .insert([{ 
-            manga_id: mangaId, // 👈 NEW: Links to Spectral Rift or Urithi
+            manga_id: mangaId, 
             chapter_number: chapterId, 
             title: `Chapter ${chapterId}` 
         }])
@@ -86,7 +86,6 @@ export default function AdminPage() {
     for (let i = 0; i < mangaFiles.length; i++) {
         const file = mangaFiles[i];
         
-        // 👈 NEW: Separating images into different folders by manga ID
         const filePath = `manga-${mangaId}/ch-${chapterId}/${Date.now()}-${file.name}`;
 
         const { error: uploadError } = await supabase.storage
@@ -102,11 +101,10 @@ export default function AdminPage() {
             .from('manga-pages')
             .getPublicUrl(filePath);
 
-        // For now, we keep chapter_id as chapterId to match your current DB setup
         const { error: dbError } = await supabase
             .from('manga_pages')
             .insert([{
-                manga_id: mangaId,     // 👈 THE MISSING LINK! 
+                manga_id: mangaId, 
                 chapter_id: chapterId, 
                 page_number: i + 1,
                 image_url: publicUrl
@@ -116,6 +114,23 @@ export default function AdminPage() {
     }
 
     const mangaName = mangaId === 1 ? "Spectral Rift" : "Urithi";
+
+    // 📢 C. BLAST THE PUSH NOTIFICATION
+    try {
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `🗡️ New ${mangaName} Drop!`,
+          body: `Chapter ${chapterId} has officially been uploaded. Read it now!`,
+          url: `/read/${chapterId}?manga=${mangaId}`
+        })
+      });
+      console.log("Notification broadcast sent to all subscribers!");
+    } catch (notifyErr) {
+      console.error("Failed to send push notifications:", notifyErr);
+    }
+
     setMessage(`✅ Registered ${mangaName} Chapter ${chapterId} and uploaded ${successCount} pages!`);
     setLoading(false);
     setMangaFiles(null);
@@ -210,7 +225,6 @@ export default function AdminPage() {
                         <ImageIcon size={24} /> <h2 className="text-xl font-bold">New Manga Release</h2>
                     </div>
                     
-                    {/* 👈 NEW: PROJECT SELECTOR DROPDOWN */}
                     <select 
                         value={selectedMangaId}
                         onChange={(e) => setSelectedMangaId(e.target.value)}

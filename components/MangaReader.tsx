@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Menu } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import { useParams, useRouter, useSearchParams } from "next/navigation"; // 👈 Added useSearchParams
+import { useParams, useRouter, useSearchParams } from "next/navigation"; 
 import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
 import BookmarkButton from "./BookmarkButton"; 
+import SubscribeButton from "./SubscribeButton"; // 👈 NEW: Imported the Subscribe button
 import { motion } from "framer-motion"; 
 
 interface MangaPage {
@@ -18,18 +19,15 @@ export default function MangaReader() {
   const { id } = useParams();
   const router = useRouter();
   
-  // 👈 NEW: Grab the manga ID from the URL (e.g., ?manga=2)
   const searchParams = useSearchParams();
-  const mangaId = searchParams.get('manga') || "1"; // Default to Spectral Rift (1)
+  const mangaId = searchParams.get('manga') || "1"; 
 
   const [pages, setPages] = useState<MangaPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [xpAwarded, setXpAwarded] = useState(false);
 
-  // Dynamic Title for Header
   const mangaTitle = mangaId === "1" ? "SPECTRAL RIFT" : "URITHI";
-  // Dynamic Slug to keep comments and bookmarks isolated between mangas
   const uniqueSlug = `manga-${mangaId}-ch-${id}`;
 
   // FETCH DATA (HYBRID MODE)
@@ -42,12 +40,11 @@ export default function MangaReader() {
       let onlineData = null;
       let fetchError = null;
 
-      // 1. TRY ONLINE FETCH
       try {
         const { data, error } = await supabase
           .from('manga_pages')
           .select('*')
-          .eq('manga_id', mangaId) // 👈 IT NOW CHECKS MANGA ID
+          .eq('manga_id', mangaId) 
           .eq('chapter_id', id)
           .order('page_number', { ascending: true });
         
@@ -57,23 +54,19 @@ export default function MangaReader() {
         fetchError = err;
       }
 
-      // 2. DECISION LOGIC
       if (!fetchError && onlineData && onlineData.length > 0) {
-        // ✅ ONLINE: Success
         const formattedPages = onlineData.map((page: any) => ({
             id: page.id,
             url: page.image_url
         }));
         setPages(formattedPages);
       } else {
-        // ⚠️ OFFLINE FALLBACK: Check Local Storage
         console.log("Supabase unreachable or empty. Checking offline library...");
         
         const offlineData = localStorage.getItem('offline_library');
         if (offlineData) {
             const library = JSON.parse(offlineData);
             
-            // 👈 IT CHECKS OFFLINE BY BOTH MANGA ID AND CHAPTER ID
             const savedChapter = library.find((c: any) => 
                 String(c.chapter_number) === String(id) &&
                 String(c.manga_id) === String(mangaId)
@@ -144,13 +137,11 @@ export default function MangaReader() {
         <ArrowLeft size={24} />
         </button>
 
-        {/* 👈 Dynamic Title based on Universe */}
         <span className="text-white font-bold tracking-widest text-sm md:text-base absolute left-1/2 transform -translate-x-1/2">
             {mangaTitle}: CH {id}
         </span>
 
         <div className="flex items-center gap-3">
-            {/* 👈 Uses uniqueSlug so bookmarks don't mix up chapters */}
             <BookmarkButton slug={uniqueSlug} title={`${mangaTitle} Ch ${id}`} type="manga" />
             <button className="text-white hover:text-blue-500 transition">
                 <Menu size={24} />
@@ -210,25 +201,28 @@ export default function MangaReader() {
         transition={{ delay: 0.2 }}
         className="w-full max-w-2xl px-6 mt-4 mb-10"
       >
-         {/* 👈 Uses uniqueSlug so comments are separated for Urithi and Spectral Rift */}
          <SocialStats slug={uniqueSlug} />
          <CommentSection slug={uniqueSlug} />
       </motion.div>
 
       {/* FOOTER */}
-      <div className="w-full max-w-2xl px-6 py-10 flex justify-between text-white border-t border-gray-800">
+      <div className="w-full max-w-2xl px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-white border-t border-gray-800">
         <button 
-            // 👈 Passes ?manga= ID to the Prev button
             onClick={() => router.push(`/read/${Number(id) - 1}?manga=${mangaId}`)}
             disabled={Number(id) <= 1}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-900 transition"
+            className="flex items-center gap-2 px-6 py-3 border border-gray-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-900 transition w-full md:w-auto justify-center"
         >
           <ArrowLeft size={18} /> Prev
         </button>
+
+        {/* 👈 THE NEW NOTIFICATION BUTTON */}
+        <div className="z-10 w-full md:w-auto flex justify-center">
+            <SubscribeButton />
+        </div>
+
         <button 
-            // 👈 Passes ?manga= ID to the Next button
             onClick={() => router.push(`/read/${Number(id) + 1}?manga=${mangaId}`)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 rounded-lg font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-900/50 transition"
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 rounded-lg font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-900/50 transition w-full md:w-auto justify-center"
         >
           Next Chapter <ArrowLeft size={18} className="rotate-180" />
         </button>

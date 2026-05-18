@@ -7,6 +7,7 @@ import {
   ChevronRight, Play, Menu, X, Flame, Sparkles, Star
 } from "lucide-react";
 import UserBadge from "../components/UserBadge";
+import { supabase } from "../lib/supabaseClient"; 
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 
 interface ReadingHistory {
@@ -27,6 +28,8 @@ export default function Home() {
   const [history, setHistory] = useState<ReadingHistory | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [user, setUser] = useState<any>(null); 
+  
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroBgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
@@ -35,8 +38,16 @@ export default function Home() {
   useEffect(() => {
     const savedHistory = localStorage.getItem("user_reading_history");
     if (savedHistory) setHistory(JSON.parse(savedHistory));
+    
     const handleScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", handleScroll);
+
+    const checkUserSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    checkUserSession();
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -132,7 +143,7 @@ export default function Home() {
           overflow: hidden;
         }
 
-        /* Subtle shimmer on gold text */
+        /* Subtle shimmer on text */
         @keyframes shimmer {
           0%   { background-position: -400px 0; }
           100% { background-position: 400px 0; }
@@ -274,7 +285,7 @@ export default function Home() {
       </AnimatePresence>
 
       {/* ============================================================
-          HERO — Cinematic fullscreen billboard (Spectral Rift Focus)
+          HERO — Clean Center-Aligned Wide-Screen Screen Setup
       ============================================================ */}
       <section ref={heroRef} style={{ position:"relative", width:"100%", minHeight:"100vh", display:"flex", alignItems:"center", overflow:"hidden" }}>
 
@@ -308,11 +319,11 @@ export default function Home() {
         <div style={{ position:"relative", zIndex:10, maxWidth:1400, margin:"0 auto", padding:"0 2rem", paddingTop:120, paddingBottom:80, width:"100%" }}>
           <motion.div variants={STAGGER.container} initial="hidden" animate="show">
 
-            {/* Badge */}
+            {/* Badges */}
             <motion.div variants={STAGGER.item} style={{ display:"inline-flex", alignItems:"center", gap:8, marginBottom:28 }}>
               <div style={{
                 display:"flex", alignItems:"center", gap:8,
-                padding:"8px 16px", borderRadius:100,
+                padding:"8px 16px", borderRadius: 100,
                 border:"1px solid rgba(14,165,233,0.4)",
                 background:"rgba(14,165,233,0.08)",
                 backdropFilter:"blur(12px)"
@@ -320,7 +331,7 @@ export default function Home() {
                 <Flame size={12} style={{ color:"var(--cerulean)" }} />
                 <span style={{ fontFamily:"'DM Sans'", fontWeight:700, fontSize:10, letterSpacing:"0.25em", textTransform:"uppercase", color:"var(--cerulean)" }}>New Chapter Available</span>
               </div>
-              <div style={{ display:"flex", alignItems:"center", gap:4, padding:"8px 14px", borderRadius:100, border:"1px solid rgba(108,59,255,0.3)", background:"rgba(108,59,255,0.08)" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:4, padding:"8px 14px", borderRadius: 100, border:"1px solid rgba(108,59,255,0.3)", background:"rgba(108,59,255,0.08)" }}>
                 <Star size={10} style={{ color:"var(--royal-lt)" }} fill="currentColor" />
                 <span style={{ fontFamily:"'DM Sans'", fontWeight:700, fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"var(--royal-lt)" }}>Top Rated</span>
               </div>
@@ -366,7 +377,7 @@ export default function Home() {
               <Link href="/read" style={{ textDecoration:"none" }}>
                 <div style={{
                   display:"inline-flex", alignItems:"center", gap:10,
-                  padding:"16px 36px", borderRadius:100,
+                  padding:"16px 36px", borderRadius: 100,
                   background:"linear-gradient(135deg, var(--royal) 0%, var(--sapphire) 100%)",
                   color:"#fff", fontFamily:"'DM Sans'", fontWeight:700,
                   fontSize:12, letterSpacing:"0.2em", textTransform:"uppercase",
@@ -382,7 +393,7 @@ export default function Home() {
               <Link href="/wiki" style={{ textDecoration:"none" }}>
                 <div style={{
                   display:"inline-flex", alignItems:"center", gap:10,
-                  padding:"15px 32px", borderRadius:100,
+                  padding:"15px 32px", borderRadius: 100,
                   border:"1px solid rgba(14,165,233,0.5)",
                   background:"rgba(14,165,233,0.07)",
                   color:"var(--cerulean)", fontFamily:"'DM Sans'", fontWeight:700,
@@ -408,43 +419,6 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </div>
-
-        {/* Right-side feature card (desktop only) - NOW SPECTRAL RIFT */}
-        <motion.div
-          initial={{ opacity:0, x:60 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.8, duration:0.9 }}
-          className="hidden xl:block"
-          style={{
-            position:"absolute", right:"5%", top:"50%", transform:"translateY(-50%)",
-            width:280, zIndex:10
-          }}
-        >
-          <div style={{
-            borderRadius:24, overflow:"hidden",
-            border:"1px solid rgba(255,255,255,0.08)",
-            background:"rgba(255,255,255,0.04)",
-            backdropFilter:"blur(20px)",
-            padding:24
-          }}>
-            <div style={{ width:"100%", height:320, borderRadius:16, backgroundImage:"url('/spectral_rift_cover.jpeg')", backgroundSize:"cover", backgroundPosition:"center", marginBottom:20, position:"relative", overflow:"hidden" }}>
-              <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(5,3,15,0.9) 0%, transparent 60%)" }} />
-              <div style={{ position:"absolute", top:12, left:12 }}>
-                <span style={{ padding:"4px 10px", borderRadius:6, background:"rgba(14,165,233,0.9)", fontFamily:"'DM Sans'", fontWeight:700, fontSize:9, letterSpacing:"0.2em", textTransform:"uppercase", color:"#000" }}>Live</span>
-              </div>
-            </div>
-            <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:10, letterSpacing:"0.25em", textTransform:"uppercase", color:"var(--cerulean)", marginBottom:6 }}>Featured Series</p>
-            <h3 style={{ fontFamily:"'Bebas Neue'", fontSize:28, letterSpacing:"0.05em", color:"#fff", marginBottom:10, lineHeight:1 }}>SPECTRAL RIFT</h3>
-            <p style={{ fontFamily:"'DM Sans'", fontWeight:300, fontSize:12, color:"rgba(255,255,255,0.45)", lineHeight:1.6, marginBottom:16 }}>Shadows leak into Nairobi. Squad 7 is out of time.</p>
-            <Link href="/read?manga=1" style={{ textDecoration:"none" }}>
-              <div style={{
-                display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                padding:"12px 20px", borderRadius:100,
-                background:"linear-gradient(135deg, var(--cerulean) 0%, var(--sapphire) 100%)",
-                fontFamily:"'DM Sans'", fontWeight:700, fontSize:10,
-                letterSpacing:"0.15em", textTransform:"uppercase", color:"#fff"
-              }}>Read Now <ArrowRight size={12} /></div>
-            </Link>
-          </div>
-        </motion.div>
 
         {/* Scroll indicator */}
         <motion.div
@@ -541,11 +515,11 @@ export default function Home() {
         </div>
 
         {/* ============================================================
-            BENTO GRID (FLIPPED HIERARCHY)
+            BENTO GRID (FLIPPED HIERARCHY WITH HIGH-CONTRAST TITLES)
         ============================================================ */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(12, 1fr)", gridTemplateRows:"auto", gap:20 }}>
 
-          {/* ── SPECTRAL RIFT — Massive 8-Col Feature Card ── */}
+          {/* ── SPECTRAL RIFT — Flagship 8-Col Feature Card ── */}
           <motion.div
             initial={{ opacity:0, y:40 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:0.7 }}
             style={{ gridColumn:"span 12", gridRow:1 }}
@@ -555,8 +529,7 @@ export default function Home() {
               <div className="border-animate grain" style={{
                 position:"relative", borderRadius:28, overflow:"hidden",
                 aspectRatio:"16/9", cursor:"pointer",
-                transition:"transform 0.5s ease",
-                gridColumn:"span 8"
+                transition:"transform 0.5s ease"
               }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
@@ -566,10 +539,12 @@ export default function Home() {
                   position:"absolute", inset:0,
                   backgroundImage:"url('/spectral_rift_cover.jpeg')",
                   backgroundSize:"cover", backgroundPosition:"center",
-                  opacity:0.45, transition:"all 0.8s ease"
-                }} className="group-hover:opacity-60 group-hover:scale-105" />
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to right, rgba(5,3,15,0.97) 0%, rgba(5,3,15,0.6) 55%, rgba(5,3,15,0.3) 100%)" }} />
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(5,3,15,0.9) 0%, transparent 50%)" }} />
+                  opacity:0.35, transition:"all 0.8s ease"
+                }} className="group-hover:opacity-50 group-hover:scale-105" />
+                
+                {/* DEEP GRADIENT OVERLAYS FOR MAXIMUM READABILITY */}
+                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to right, rgba(3,2,10,1) 0%, rgba(3,2,10,0.7) 45%, rgba(3,2,10,0.2) 100%)" }} />
+                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(3,2,10,1) 0%, rgba(3,2,10,0.4) 50%, transparent 100%)" }} />
 
                 {/* Top badges */}
                 <div style={{ position:"absolute", top:28, left:28, display:"flex", gap:10 }}>
@@ -583,10 +558,10 @@ export default function Home() {
                 </div>
 
                 {/* Content */}
-                <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"40px 40px" }}>
-                  <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:10, letterSpacing:"0.3em", textTransform:"uppercase", color:"rgba(14,165,233,0.6)", marginBottom:12 }}>ID: 01 · Ongoing Series</p>
-                  <h3 style={{ fontFamily:"'Bebas Neue'", fontSize:"clamp(52px, 6vw, 88px)", letterSpacing:"0.04em", lineHeight:0.85, color:"#fff", marginBottom:16, textShadow:"0 4px 30px rgba(0,0,0,0.5)" }}>SPECTRAL RIFT</h3>
-                  <p style={{ fontFamily:"'DM Sans'", fontWeight:300, fontSize:14, color:"rgba(255,255,255,0.55)", maxWidth:460, lineHeight:1.65, marginBottom:32 }}>
+                <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"40px 40px", zIndex:2 }}>
+                  <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:10, letterSpacing:"0.3em", textTransform:"uppercase", color:"var(--cerulean)", marginBottom:12, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>ID: 01 · Flagship Series</p>
+                  <h3 style={{ fontFamily:"'Bebas Neue'", fontSize:"clamp(52px, 6vw, 88px)", letterSpacing:"0.04em", lineHeight:0.85, color:"#fff", marginBottom:16, textShadow:"0 2px 10px rgba(0,0,0,0.95), 0 4px 30px rgba(0,0,0,0.95)" }}>SPECTRAL RIFT</h3>
+                  <p style={{ fontFamily:"'DM Sans'", fontWeight:300, fontSize:14, color:"rgba(255,255,255,0.7)", maxWidth:460, lineHeight:1.65, marginBottom:32, textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
                     Shadows leak into Nairobi. Squad 7 is out of time. Dive into the core timeline.
                   </p>
                   <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -631,13 +606,13 @@ export default function Home() {
                     <div style={{ display:"inline-flex", padding:14, borderRadius:14, border:"1px solid rgba(201,151,58,0.3)", background:"rgba(201,151,58,0.08)", marginBottom:28 }}>
                       <BookOpen size={24} style={{ color:"var(--gold)" }} />
                     </div>
-                    <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:10, letterSpacing:"0.3em", textTransform:"uppercase", color:"rgba(201,151,58,0.6)", marginBottom:10 }}>Light Novel · Ongoing</p>
-                    <h3 style={{ fontFamily:"'Bebas Neue'", fontSize:52, letterSpacing:"0.04em", lineHeight:0.85, color:"#fff", marginBottom:16 }}>Tales of<br />the 47</h3>
-                    <p style={{ fontFamily:"'DM Sans'", fontWeight:300, fontSize:13, color:"rgba(255,255,255,0.4)", lineHeight:1.65 }}>Folk legends reimagined. The forty-seven whose stories were never told.</p>
+                    <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:10, letterSpacing:"0.3em", textTransform:"uppercase", color:"rgba(201,151,58,0.8)", marginBottom:10, textShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>Light Novel · Ongoing</p>
+                    <h3 style={{ fontFamily:"'Bebas Neue'", fontSize:52, letterSpacing:"0.04em", lineHeight:0.85, color:"#fff", marginBottom:16, textShadow:"0 2px 10px rgba(0,0,0,0.9)" }}>Tales of<br />the 47</h3>
+                    <p style={{ fontFamily:"'DM Sans'", fontWeight:300, fontSize:13, color:"rgba(255,255,255,0.65)", lineHeight:1.65, textShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>Folk legends reimagined. The forty-seven whose stories were never told.</p>
                   </div>
                   <div>
                     <div style={{ height:1, background:"linear-gradient(90deg, rgba(201,151,58,0.3), transparent)", marginBottom:24 }} />
-                    <div style={{ display:"flex", alignItems:"center", gap:8, fontFamily:"'DM Sans'", fontWeight:700, fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"var(--gold)" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, fontFamily:"'DM Sans'", fontWeight:700, fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"var(--gold)", textShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>
                       Read Folklore <ChevronRight size={14} />
                     </div>
                   </div>
@@ -663,9 +638,9 @@ export default function Home() {
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(201,151,58,0.5)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(201,151,58,0.2)"; }}
               >
-                <div style={{ position:"absolute", inset:0, backgroundImage:"url('/urithi_cover.jpeg')", backgroundSize:"cover", backgroundPosition:"center", opacity:0.3, transition:"opacity 0.6s" }} />
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(5,3,15,1) 0%, rgba(5,3,15,0.5) 60%, transparent 100%)" }} />
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to right, rgba(5,3,15,0.9) 0%, transparent 60%)" }} />
+                <div style={{ position:"absolute", inset:0, backgroundImage:"url('/urithi_cover.jpeg')", backgroundSize:"cover", backgroundPosition:"center", opacity:0.25, transition:"opacity 0.6s" }} />
+                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(3,2,10,1) 0%, rgba(3,2,10,0.6) 50%, transparent 100%)" }} />
+                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to right, rgba(3,2,10,0.9) 0%, transparent 60%)" }} />
 
                 <div style={{ position:"absolute", top:24, right:24, display:"flex", alignItems:"center", gap:8 }}>
                   <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--gold)", boxShadow:"0 0 12px rgba(201,151,58,1)", animation:"pulse 2s infinite" }} />
@@ -673,10 +648,10 @@ export default function Home() {
                 </div>
 
                 <div style={{ position:"absolute", bottom:0, left:0, padding:"36px 36px", zIndex:2 }}>
-                  <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:10, letterSpacing:"0.3em", textTransform:"uppercase", color:"rgba(201,151,58,0.6)", marginBottom:10 }}>ID: 02 · Dark Fantasy</p>
-                  <h3 style={{ fontFamily:"'Bebas Neue'", fontSize:52, letterSpacing:"0.04em", color:"#fff", marginBottom:12, lineHeight:0.9 }}>URITHI</h3>
-                  <p style={{ fontFamily:"'DM Sans'", fontWeight:300, fontSize:13, color:"rgba(255,255,255,0.45)", maxWidth:280, lineHeight:1.6, marginBottom:24 }}>Ancient bloodlines. A modern reckoning.</p>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, fontFamily:"'DM Sans'", fontWeight:700, fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"var(--gold)" }}>
+                  <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:10, letterSpacing:"0.3em", textTransform:"uppercase", color:"var(--gold-lt)", marginBottom:10, textShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>ID: 02 · Dark Fantasy</p>
+                  <h3 style={{ fontFamily:"'Bebas Neue'", fontSize:52, letterSpacing:"0.04em", color:"#fff", marginBottom:12, lineHeight:0.9, textShadow:"0 2px 10px rgba(0,0,0,0.95), 0 4px 30px rgba(0,0,0,0.95)" }}>URITHI</h3>
+                  <p style={{ fontFamily:"'DM Sans'", fontWeight:300, fontSize:13, color:"rgba(255,255,255,0.7)", maxWidth:280, lineHeight:1.6, marginBottom:24, textShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>Ancient bloodlines. A modern reckoning.</p>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, fontFamily:"'DM Sans'", fontWeight:700, fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"var(--gold)", textShadow:"0 1px 4px rgba(0,0,0,0.4)" }}>
                     Read Manga <ChevronRight size={14} />
                   </div>
                 </div>
@@ -705,8 +680,8 @@ export default function Home() {
               >
                 <Users size={28} style={{ color:"rgba(255,255,255,0.3)", marginBottom:20, transition:"color 0.3s" }} />
                 <div>
-                  <h4 style={{ fontFamily:"'Bebas Neue'", fontSize:28, letterSpacing:"0.04em", color:"#fff", marginBottom:4 }}>World Bible</h4>
-                  <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:9, letterSpacing:"0.25em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)" }}>Character Database</p>
+                  <h4 style={{ fontFamily:"'Bebas Neue'", fontSize:28, letterSpacing:"0.04em", color:"#fff", marginBottom:4, textShadow:"0 1px 8px rgba(0,0,0,0.5)" }}>World Bible</h4>
+                  <p style={{ fontFamily:"'DM Sans'", fontWeight:600, fontSize:9, letterSpacing:"0.25em", textTransform:"uppercase", color:"rgba(255,255,255,0.4)" }}>Character Database</p>
                 </div>
               </div>
             </Link>
@@ -732,36 +707,44 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Join Community CTA */}
-            <div style={{ gridColumn:"span 2" }}>
-              <div style={{
-                borderRadius:24, padding:"28px 32px",
-                background:"linear-gradient(135deg, rgba(108,59,255,0.15) 0%, rgba(30,58,255,0.1) 100%)",
-                border:"1px solid rgba(108,59,255,0.25)",
-                display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"space-between", gap:16
-              }}>
-                <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                  <div style={{ width:48, height:48, borderRadius:14, background:"rgba(108,59,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <Sparkles size={22} style={{ color:"var(--royal-lt)" }} />
-                  </div>
-                  <div>
-                    <h4 style={{ fontFamily:"'Bebas Neue'", fontSize:22, letterSpacing:"0.04em", color:"#fff", margin:0, marginBottom:4 }}>Join the Reading Faction</h4>
-                    <p style={{ fontFamily:"'DM Sans'", fontWeight:400, fontSize:11, color:"rgba(255,255,255,0.4)", margin:0 }}>Track progress, unlock lore, access early chapters.</p>
-                  </div>
-                </div>
-                <Link href="/account" style={{ textDecoration:"none" }}>
+            {/* Join Community CTA - Automatically hides when user logs in! */}
+            <AnimatePresence>
+              {!user && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                  style={{ gridColumn:"span 2" }}
+                >
                   <div style={{
-                    display:"inline-flex", alignItems:"center", gap:8,
-                    padding:"12px 24px", borderRadius:100,
-                    background:"rgba(108,59,255,0.3)", border:"1px solid rgba(108,59,255,0.5)",
-                    fontFamily:"'DM Sans'", fontWeight:700, fontSize:10,
-                    letterSpacing:"0.2em", textTransform:"uppercase", color:"var(--royal-lt)"
+                    borderRadius:24, padding:"28px 32px",
+                    background:"linear-gradient(135deg, rgba(108,59,255,0.15) 0%, rgba(30,58,255,0.1) 100%)",
+                    border:"1px solid rgba(108,59,255,0.25)",
+                    display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"space-between", gap:16
                   }}>
-                    Create Account <ArrowRight size={13} />
+                    <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+                      <div style={{ width:48, height:48, borderRadius:14, background:"rgba(108,59,255,0.3)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <Sparkles size={22} style={{ color:"var(--royal-lt)" }} />
+                      </div>
+                      <div>
+                        <h4 style={{ fontFamily:"'Bebas Neue'", fontSize:22, letterSpacing:"0.04em", color:"#fff", margin:0, marginBottom:4 }}>Join the Reading Faction</h4>
+                        <p style={{ fontFamily:"'DM Sans'", fontWeight:400, fontSize:11, color:"rgba(255,255,255,0.4)", margin:0 }}>Track progress, unlock lore, access early chapters.</p>
+                      </div>
+                    </div>
+                    <Link href="/login" style={{ textDecoration:"none" }}>
+                      <div style={{
+                        display:"inline-flex", alignItems:"center", gap:8,
+                        padding:"12px 24px", borderRadius:100,
+                        background:"rgba(108,59,255,0.3)", border:"1px solid rgba(108,59,255,0.5)",
+                        fontFamily:"'DM Sans'", fontWeight:700, fontSize:10,
+                        letterSpacing:"0.2em", textTransform:"uppercase", color:"var(--royal-lt)",
+                        cursor:"pointer"
+                      }}>
+                        Create Account <ArrowRight size={13} />
+                      </div>
+                    </Link>
                   </div>
-                </Link>
-              </div>
-            </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
         </div>

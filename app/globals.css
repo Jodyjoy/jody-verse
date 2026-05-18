@@ -76,3 +76,15 @@ body {
   -webkit-touch-callout: none;
   user-select: none;
 }
+/* Add these down inside your globals.css if you want clean class naming shortcuts */
+.font-display {
+  font-family: var(--font-bebas-neue), sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-cinzel), serif;
+}
+
+.font-body {
+  font-family: var(--font-dm-sans), sans-serif;
+}

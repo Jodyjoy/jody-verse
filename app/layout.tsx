@@ -1,18 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-// @ts-ignore: CSS module declaration missing in this project setup
+import { Bebas_Neue, Cinzel, DM_Sans } from "next/font/google";
+// @ts-ignore: allow side-effect CSS import in Next.js app directory
 import "./globals.css";
 import { DownloadProvider } from "../components/DownloadProvider"; 
-import { GlobalEffects } from "../components/GlobalEffects"; // 👈 Integrated the cinematic atmosphere engine
+import { GlobalEffects } from "../components/GlobalEffects"; 
+import Script from "next/script";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// --- ULTRA-PREMIUM DIGITAL SERIAlIZATION FONTS ---
+const bebasNeue = Bebas_Neue({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-bebas-neue",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const cinzel = Cinzel({
   subsets: ["latin"],
+  variable: "--font-cinzel",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
 });
 
 export const metadata: Metadata = {
@@ -43,7 +51,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#030206", // 👈 Updated to match your official Void palette color!
+  themeColor: "#05030f",
 };
 
 export default function RootLayout({
@@ -54,13 +62,28 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${bebasNeue.variable} ${cinzel.variable} ${dmSans.variable} antialiased`}
+        style={{ backgroundColor: "#05030f" }}
       >
         <DownloadProvider>
-          {/* 👇 Injected the film grain & custom interactive desktop cursor physics */}
           <GlobalEffects />
           {children}
         </DownloadProvider>
+
+        {/* 👇 Service Worker Background Boot Loader (Survives post-build injector pipeline) 👇 */}
+        <Script id="register-sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                  console.log('Rift ServiceWorker online and authorized with scope: ', registration.scope);
+                }, function(err) {
+                  console.error('ServiceWorker boot crash: ', err);
+                });
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   );

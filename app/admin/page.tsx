@@ -226,7 +226,7 @@ export default function AdminPage() {
         
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 border-b border-gray-800 pb-6">
             <h1 className="text-3xl font-bold flex items-center gap-2">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Admin Dashboard</span>
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-purple-600">Admin Dashboard</span>
             </h1>
             <div className="flex bg-gray-900 p-1 rounded-lg">
                 <button 

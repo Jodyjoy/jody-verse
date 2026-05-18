@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// @ts-ignore: CSS module declaration missing in this project setup
 import "./globals.css";
-import { DownloadProvider } from "../components/DownloadProvider"; // 👈 NEW: Imported the engine
+import { DownloadProvider } from "../components/DownloadProvider"; 
+import { GlobalEffects } from "../components/GlobalEffects"; // 👈 Integrated the cinematic atmosphere engine
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
     siteName: "Jody-verse",
     images: [
       {
-        url: "/opengraph-image.png", // We will add this image next!
+        url: "/opengraph-image.png", 
         width: 1200,
         height: 630,
         alt: "Project Rift Banner",
@@ -36,12 +38,12 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Project Rift | The Jody-verse",
     description: "Read the latest manga chapters and novels from the Jody-verse.",
-    images: ["/opengraph-image.png"], // Same image
+    images: ["/opengraph-image.png"], 
   },
 };
 
 export const viewport = {
-  themeColor: "#000000",
+  themeColor: "#030206", // 👈 Updated to match your official Void palette color!
 };
 
 export default function RootLayout({
@@ -54,8 +56,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* 👇 Wrapped your entire app in the background download engine 👇 */}
         <DownloadProvider>
+          {/* 👇 Injected the film grain & custom interactive desktop cursor physics */}
+          <GlobalEffects />
           {children}
         </DownloadProvider>
       </body>

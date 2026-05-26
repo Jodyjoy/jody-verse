@@ -70,6 +70,27 @@ const SERIES = [
   },
   {
     index: 2,
+    mangaId: 3,
+    title: "KATIKATI",
+    label: "Manhwa · Supernatural",
+    tagline: "Between worlds, between lives",
+    genre: ["Supernatural", "Mystery", "Thriller"],
+    chapters: "Coming",
+    cover: null,
+    description:
+      "A soul trapped between life and death navigates Katikati — the liminal space where the dead linger, secrets fester, and finding the way home may cost everything.",
+    href: "/read?manga=3",
+    chapterHref: "/read?manga=3",
+    color: "#EC4899",
+    colorDeep: "#831843",
+    colorAlt: "#DB2777",
+    grad: "linear-gradient(135deg, #1F0B18 0%, #9D174D 45%, #EC4899 100%)",
+    gradCard: "linear-gradient(160deg, rgba(131,24,67,0.5) 0%, rgba(236,72,153,0.2) 100%)",
+    gradGlow: "rgba(236,72,153,0.35)",
+    accentRgb: "236,72,153",
+  },
+  {
+    index: 3,
     mangaId: 0,
     title: "TALES OF THE 47",
     label: "Light Novel · Folklore",
@@ -103,6 +124,7 @@ const STAGGER = {
 function seriesNameById(mangaId?: number): string {
   if (mangaId === 1) return "Spectral Rift";
   if (mangaId === 2) return "Urithi";
+  if (mangaId === 3) return "Katikati";
   return "Tales of the 47";
 }
 function isNew(dateStr: string) {
@@ -280,6 +302,35 @@ export default function Home() {
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* The Collection — responsive grid */
+        .collection-grid {
+          display: flex;
+          gap: 14px;
+          overflow-x: auto;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .collection-grid::-webkit-scrollbar { display: none; }
+        .collection-card {
+          flex-shrink: 0;
+          width: min(260px, 74vw);
+        }
+        @media (min-width: 640px) {
+          .collection-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+            overflow-x: visible;
+          }
+          .collection-card { width: auto; flex-shrink: unset; }
+        }
+        @media (min-width: 1024px) {
+          .collection-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+          }
+        }
       `}</style>
 
       {/* ── Fixed halftone background ── */}
@@ -522,7 +573,7 @@ export default function Home() {
 
                 {/* Stats strip */}
                 <motion.div variants={STAGGER.item} style={{ display: "flex", gap: 32, marginTop: 48, paddingTop: 28, borderTop: "1px solid rgba(255,255,255,0.07)", flexWrap: "wrap" }}>
-                  {[["2", "Series"], ["47+", "Chapters"], ["7", "Characters"]].map(([n, l]) => (
+                  {[["4", "Series"], ["60+", "Chapters"], ["7", "Characters"]].map(([n, l]) => (
                     <div key={l}>
                       <div className="bb" style={{ fontSize: 34, lineHeight: 1, color: "#fff", letterSpacing: "0.04em" }}>{n}</div>
                       <div className="dm" style={{ fontSize: 8, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.28)", marginTop: 3 }}>{l}</div>
@@ -668,10 +719,10 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* 3 equal cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }} className="grid-cols-1 md:grid-cols-3">
+        {/* Series cards — scrollable on mobile, 2-col on tablet, 4-col on desktop */}
+        <div className="collection-grid">
           {SERIES.map((ser, i) => (
-            <motion.div key={ser.index}
+            <motion.div key={ser.index} className="collection-card"
               initial={{ opacity: 0, y: 36 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               transition={{ duration: 0.65, delay: i * 0.1 }}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
@@ -996,7 +1047,7 @@ export default function Home() {
         <div style={{ display: "flex", gap: 52, whiteSpace: "nowrap", animation: "marquee 28s linear infinite" }}>
           {Array(4).fill(0).map((_, i) => (
             <div key={i} style={{ display: "flex", gap: 52, alignItems: "center" }}>
-              {["Spectral Rift", "Urithi", "Tales of the 47", "Supernatural", "Dark Fantasy", "Crafted in Kenya", "New Chapters Out"].map((t) => (
+              {["Spectral Rift", "Urithi", "Katikati", "Tales of the 47", "Supernatural", "Dark Fantasy", "Crafted in Kenya", "New Chapters Out"].map((t) => (
                 <span key={t} className="bb" style={{ fontSize: 13, letterSpacing: "0.22em", color: "rgba(255,255,255,0.1)" }}>
                   {t} <span style={{ color: "rgba(139,92,246,0.35)", marginLeft: 16 }}>✦</span>
                 </span>

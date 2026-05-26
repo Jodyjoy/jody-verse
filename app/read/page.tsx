@@ -32,6 +32,17 @@ const MANGA_META = [
     color: "#F59E0B",
     accentRgb: "245,158,11",
   },
+  {
+    id: 3,
+    title: "KATIKATI",
+    cover: null,
+    description:
+      "A soul trapped between life and death navigates Katikati — the liminal space where the dead linger, secrets fester, and finding the way home may cost everything.",
+    genre: ["Supernatural", "Mystery", "Thriller"],
+    status: "Coming Soon",
+    color: "#EC4899",
+    accentRgb: "236,72,153",
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -157,7 +168,7 @@ function LibraryContent() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "44px 1.5rem 80px", position: "relative", zIndex: 1 }}>
 
         {/* ── Series switcher ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14, marginBottom: 32 }}>
           {MANGA_META.map((ser) => (
             <button
               key={ser.id}

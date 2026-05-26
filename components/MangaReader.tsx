@@ -14,9 +14,10 @@ import SubscribeButton from "./SubscribeButton";
 import { motion, AnimatePresence } from "framer-motion";
 
 /* ─── Series branding lookup ─────────────────────────────────── */
-const SERIES_META: Record<string, { color: string; accentRgb: string; cover: string; label: string }> = {
+const SERIES_META: Record<string, { color: string; accentRgb: string; cover: string | null; label: string }> = {
   "1": { color: "#8B5CF6", accentRgb: "139,92,246", cover: "/spectral_rift_cover.jpeg", label: "Spectral Rift" },
   "2": { color: "#F59E0B", accentRgb: "245,158,11", cover: "/urithi_cover.jpeg",         label: "Urithi" },
+  "3": { color: "#EC4899", accentRgb: "236,72,153", cover: null,                         label: "Katikati" },
 };
 
 interface MangaPage { id: number | string; url: string; }
@@ -29,7 +30,7 @@ export default function MangaReader() {
   const targetPageParam = searchParams.get("page");
 
   const meta = SERIES_META[mangaId] || SERIES_META["1"];
-  const mangaTitle = mangaId === "1" ? "SPECTRAL RIFT" : "URITHI";
+  const mangaTitle = mangaId === "1" ? "SPECTRAL RIFT" : mangaId === "2" ? "URITHI" : "KATIKATI";
   const uniqueSlug = `manga-${mangaId}-ch-${id}`;
 
   /* ─── State ─────────────────────────────────────────────────── */
@@ -166,12 +167,14 @@ export default function MangaReader() {
       }}>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&display=swap');`}</style>
         {/* Cover art background */}
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: `url('${meta.cover}')`,
-          backgroundSize: "cover", backgroundPosition: "center",
-          opacity: 0.12,
-        }} />
+        {meta.cover && (
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: `url('${meta.cover}')`,
+            backgroundSize: "cover", backgroundPosition: "center",
+            opacity: 0.12,
+          }} />
+        )}
         <div style={{
           position: "absolute", inset: 0,
           background: `radial-gradient(ellipse 60% 50% at 50% 50%, rgba(${meta.accentRgb},0.18) 0%, transparent 70%)`,

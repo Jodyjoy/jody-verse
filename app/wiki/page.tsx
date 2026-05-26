@@ -1,186 +1,373 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Zap, X, Shield, Activity, Target, Cpu, ChevronRight } from "lucide-react"; 
+import { ArrowLeft, X, ChevronRight, Zap, Activity } from "lucide-react";
 import { characters } from "../../lib/wikiData";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const SR_COLOR   = "#8B5CF6";
+const SR_RGB     = "139,92,246";
 
 export default function WikiPage() {
   const [activeChar, setActiveChar] = useState<typeof characters[0] | null>(null);
 
   return (
-    <div className="min-h-screen bg-void text-white p-6 md:p-12 font-sans relative">
-      
-      {/* --- BACKGROUND ATMOSPHERE GRID --- */}
-      <div className="absolute top-[-10%] left-[-10%] w-250 h-200 bg-linear-to-br from-rift-primary/10 to-transparent blur-[150px] rounded-full pointer-events-none z-0" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-200 h-200 bg-linear-to-tl from-tech-cyan/5 to-transparent blur-[150px] rounded-full pointer-events-none z-0" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(30,24,45,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(30,24,45,0.15)_1px,transparent_1px)] bg-size-[40px_40px] opacity-40 pointer-events-none z-0"></div>
+    <div style={{ minHeight: "100vh", background: "#03010C", color: "#fff", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        .bb { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+        .halftone { background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 20px 20px; }
 
-      {/* --- HEADER --- */}
-      <div className="max-w-6xl mx-auto mb-16 flex items-center gap-6 relative z-10">
-        <Link href="/" className="p-3.5 bg-void-surface border border-void-border rounded-full hover:border-rift-primary/50 text-gray-400 hover:text-white transition-all duration-300 shadow-xl cursor-pointer group">
-          <ArrowLeft size={22} className="group-hover:-translate-x-0.5 transition-transform" />
-        </Link>
-        <div>
-          <div className="flex items-center gap-2 text-xs font-black tracking-[0.25em] text-rift-primary uppercase mb-1">
-            <Cpu size={12} /> Sector 4 Mainframe
+        .char-card { transition: transform 0.32s cubic-bezier(0.16,1,0.3,1), box-shadow 0.32s; }
+        .char-card:hover { transform: translateY(-5px); box-shadow: 0 10px 32px rgba(139,92,246,0.22); }
+        .char-card:hover .card-tint { opacity: 0.55 !important; }
+        .char-card:hover .card-footer-hint { opacity: 1 !important; transform: translateY(0px) !important; }
+
+        .stat-bar { height: 3px; background: rgba(255,255,255,0.06); overflow: hidden; border-radius: 0; }
+
+        /* Modal responsive */
+        .modal-inner { display: flex; flex-direction: row; }
+        .modal-img   { width: 38%; flex-shrink: 0; min-height: 380px; }
+        .modal-body  { flex: 1; padding: 32px 28px; overflow-y: auto; }
+        @media (max-width: 640px) {
+          .modal-inner { flex-direction: column; }
+          .modal-img   { width: 100%; min-height: 240px; max-height: 240px; }
+          .modal-body  { padding: 22px 18px; }
+        }
+      `}</style>
+
+      {/* ── Backgrounds ── */}
+      <div className="halftone" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }} />
+      <div style={{
+        position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+        background: `radial-gradient(ellipse 70% 40% at 50% 0%, rgba(${SR_RGB},0.08) 0%, transparent 60%)`,
+      }} />
+
+      {/* ── Sticky top bar ── */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 40,
+        background: "rgba(3,1,12,0.94)", backdropFilter: "blur(24px)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "13px 0",
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 1.5rem", display: "flex", alignItems: "center", gap: 14 }}>
+          <Link href="/" style={{
+            width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center",
+            border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+            borderRadius: 2, color: "rgba(255,255,255,0.55)", transition: "all 0.2s",
+          }}>
+            <ArrowLeft size={17} />
+          </Link>
+          <div>
+            <div className="bb" style={{ fontSize: 19, letterSpacing: "0.08em", color: "#fff", lineHeight: 1 }}>Character Archive</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.26)", marginTop: 2 }}>Jody-Verse · Spectral Rift</div>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none">
-            Rift Archives
-          </h1>
         </div>
       </div>
 
-      {/* --- CHARACTER ASYMMETRICAL PORTFOLIO GRID --- */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
-        {characters.map((char) => (
-          <motion.div 
-            key={char.id}
-            onClick={() => setActiveChar(char)}
-            whileHover={{ y: -6 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="group relative bg-void-surface border border-void-border rounded-2xl overflow-hidden hover:border-rift-primary/40 shadow-2xl transition-all duration-500 cursor-pointer h-96"
-          >
-            {/* Subtle Gradient Backlight on Hover */}
-            <div className="absolute inset-0 bg-linear-to-b from-transparent via-void/40 to-void z-10" />
-            <div className="absolute inset-0 bg-linear-to-t from-void via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-500 z-10" />
+      {/* ── Main content ── */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "44px 1.5rem 80px", position: "relative", zIndex: 1 }}>
 
-            {/* CHARACTER IMAGE ART */}
-            <img 
-              src={char.image} 
-              alt={char.name} 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" 
-            />
+        {/* Section header */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          style={{ marginBottom: 40 }}
+        >
+          <div className="bb" style={{ fontSize: 9, letterSpacing: "0.42em", color: SR_COLOR, marginBottom: 8, opacity: 0.85 }}>
+            Spectral Rift
+          </div>
+          <h1 className="bb" style={{
+            fontSize: "clamp(34px,7vw,68px)", letterSpacing: "0.04em",
+            color: "#fff", lineHeight: 0.88, marginBottom: 14,
+          }}>
+            Characters
+          </h1>
+          <div style={{
+            width: 64, height: 2, background: SR_COLOR, marginBottom: 14,
+            boxShadow: `0 0 14px rgba(${SR_RGB},0.7)`,
+          }} />
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", fontWeight: 300 }}>
+            {characters.length} characters · Spectral Rift universe
+          </p>
+        </motion.div>
 
-            {/* TEXT DETAILS */}
-            <div className="absolute bottom-0 left-0 p-6 w-full z-20">
-              <span className="text-[10px] font-black tracking-widest text-tech-cyan bg-tech-cyan/10 border border-tech-cyan/20 px-2.5 py-1 rounded-md uppercase mb-3 inline-block backdrop-blur-md">
-                {char.role.split('/')[0].trim()}
-              </span>
-              <h2 className="text-3xl font-black uppercase text-white tracking-tight leading-none drop-shadow-md">
-                {char.name}
-              </h2>
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-400 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                Open Tactical Dossier <ChevronRight size={14} className="text-rift-primary" />
+        {/* ── Character grid ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+          gap: 16,
+        }}>
+          {characters.map((char, idx) => (
+            <motion.div
+              key={char.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.42, delay: idx * 0.065 }}
+              className="char-card"
+              onClick={() => setActiveChar(char)}
+              style={{
+                position: "relative", borderRadius: 2, overflow: "hidden",
+                border: `1px solid rgba(${SR_RGB},0.14)`,
+                cursor: "pointer", height: 340,
+                background: "#0A0A14",
+              }}
+            >
+              {/* Character image */}
+              <img
+                src={char.image}
+                alt={char.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+
+              {/* Gradient overlay */}
+              <div
+                className="card-tint"
+                style={{
+                  position: "absolute", inset: 0,
+                  background: "linear-gradient(to top, rgba(3,1,12,0.95) 0%, rgba(3,1,12,0.35) 50%, transparent 100%)",
+                  opacity: 0.88, transition: "opacity 0.3s",
+                }}
+              />
+
+              {/* Role tag */}
+              <div style={{
+                position: "absolute", top: 12, left: 12,
+                padding: "3px 9px", borderRadius: 2,
+                border: `1px solid rgba(${SR_RGB},0.3)`,
+                background: `rgba(${SR_RGB},0.12)`,
+                fontSize: 8, letterSpacing: "0.18em", fontWeight: 600,
+                color: SR_COLOR, textTransform: "uppercase" as const,
+                backdropFilter: "blur(8px)",
+              }}>
+                {char.role.split("/")[0].trim()}
               </div>
-            </div>
-          </motion.div>
-        ))}
+
+              {/* Bottom info */}
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 16px 18px", zIndex: 2 }}>
+                <div className="bb" style={{ fontSize: 28, letterSpacing: "0.04em", color: "#fff", lineHeight: 1, marginBottom: 3 }}>
+                  {char.name}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.32)", letterSpacing: "0.05em", lineHeight: 1.4 }}>
+                  {char.ability}
+                </div>
+                <div
+                  className="card-footer-hint"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4, marginTop: 9,
+                    fontSize: 9, fontWeight: 700, letterSpacing: "0.2em",
+                    color: SR_COLOR, textTransform: "uppercase" as const,
+                    opacity: 0, transform: "translateY(5px)", transition: "all 0.26s",
+                  }}
+                >
+                  View Profile <ChevronRight size={11} />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
-      {/* --- 🎯 THE TACTICAL LIGHTBOX MODAL --- */}
+      {/* ── Character modal ── */}
       <AnimatePresence>
         {activeChar && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/95 backdrop-blur-xl">
-            
-            {/* Click outside backdrop to close */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0" onClick={() => setActiveChar(null)}></motion.div>
+          <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
 
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setActiveChar(null)}
+              style={{ position: "absolute", inset: 0, background: "rgba(3,1,12,0.93)", backdropFilter: "blur(18px)" }}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="relative bg-void-surface w-full max-w-5xl rounded-3xl overflow-hidden border border-void-border shadow-2xl flex flex-col md:flex-row max-h-[90vh] z-10"
+              exit={{ opacity: 0, scale: 0.96, y: 20 }}
+              transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+              className="modal-inner"
+              style={{
+                position: "relative", zIndex: 10,
+                width: "100%", maxWidth: 900,
+                background: "#08080F",
+                border: `1px solid rgba(${SR_RGB},0.22)`,
+                borderRadius: 2, overflow: "hidden",
+                maxHeight: "90vh",
+                boxShadow: `0 0 80px rgba(${SR_RGB},0.12), 5px 5px 0 rgba(${SR_RGB},0.08)`,
+              }}
             >
-                {/* CLOSE BUTTON */}
-                <button 
-                  onClick={() => setActiveChar(null)}
-                  className="absolute top-5 right-5 z-50 p-2.5 bg-void/60 border border-void-border rounded-full hover:bg-red-600 hover:text-white transition-all text-gray-400 cursor-pointer"
-                >
-                  <X size={20} />
-                </button>
+              {/* Close button */}
+              <button
+                onClick={() => setActiveChar(null)}
+                style={{
+                  position: "absolute", top: 14, right: 14, zIndex: 50,
+                  width: 32, height: 32, borderRadius: 2,
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "rgba(255,255,255,0.5)", cursor: "pointer", transition: "all 0.2s",
+                }}
+              >
+                <X size={16} />
+              </button>
 
-                {/* LEFT SIDE: DOSSIER IMAGE ART */}
-                <div className="w-full md:w-1/2 h-72 md:h-auto relative bg-void">
-                  <img src={activeChar.image} className="w-full h-full object-cover" alt={activeChar.fullName} />
-                  <div className="absolute inset-0 bg-linear-to-t from-void-surface via-transparent to-transparent md:bg-linear-to-r md:from-transparent md:to-void-surface" />
+              {/* Left — image */}
+              <div className="modal-img" style={{ position: "relative", background: "#05050C" }}>
+                <img
+                  src={activeChar.image}
+                  alt={activeChar.fullName}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+                {/* fade to right for desktop / fade down for mobile */}
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: "linear-gradient(to right, transparent 55%, #08080F 100%)",
+                }} />
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: "linear-gradient(to top, #08080F 0%, transparent 40%)",
+                }} />
+              </div>
+
+              {/* Right — info */}
+              <div className="modal-body">
+
+                {/* Role badge */}
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 5, marginBottom: 14,
+                  padding: "3px 11px", borderRadius: 2,
+                  border: `1px solid rgba(${SR_RGB},0.35)`,
+                  background: `rgba(${SR_RGB},0.1)`,
+                  fontSize: 8, letterSpacing: "0.24em", fontWeight: 700,
+                  color: SR_COLOR, textTransform: "uppercase" as const,
+                }}>
+                  {activeChar.role}
                 </div>
 
-                {/* RIGHT SIDE: PROFILE CRITERIA DATA */}
-                <div className="w-full md:w-1/2 p-8 md:p-12 overflow-y-auto flex flex-col justify-center">
-                  <div className="flex items-center gap-2 text-xs font-black tracking-widest text-rift-primary uppercase mb-2">
-                    <Shield size={14} /> Encrypted Operator File
+                {/* Name */}
+                <h2 className="bb" style={{
+                  fontSize: "clamp(26px,4vw,42px)", letterSpacing: "0.03em",
+                  color: "#fff", lineHeight: 0.9, marginBottom: 8,
+                }}>
+                  {activeChar.fullName}
+                </h2>
+                <div style={{
+                  width: 44, height: 2, background: SR_COLOR, marginBottom: 20,
+                  boxShadow: `0 0 10px rgba(${SR_RGB},0.65)`,
+                }} />
+
+                {/* Age */}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 18 }}>
+                  <span style={{
+                    padding: "4px 12px", borderRadius: 2,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em",
+                  }}>
+                    Age {activeChar.age}
+                  </span>
+                </div>
+
+                {/* Ability */}
+                <div style={{
+                  padding: "13px 15px", borderRadius: 2, marginBottom: 18,
+                  border: `1px solid rgba(${SR_RGB},0.22)`,
+                  background: `rgba(${SR_RGB},0.07)`,
+                }}>
+                  <div style={{
+                    fontSize: 8, letterSpacing: "0.28em", fontWeight: 700,
+                    color: `rgba(${SR_RGB},0.7)`, textTransform: "uppercase" as const,
+                    marginBottom: 7, display: "flex", alignItems: "center", gap: 5,
+                  }}>
+                    <Zap size={10} /> Ability
                   </div>
-                  <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-2 text-white leading-none">
-                    {activeChar.fullName}
-                  </h2>
-                  
-                  <div className="flex flex-wrap gap-2 mb-8">
-                    <span className="px-3 py-1 bg-rift-primary/10 border border-rift-primary/20 text-rift-primary rounded-full text-xs font-bold uppercase tracking-wider">
-                      {activeChar.role}
-                    </span>
-                    <span className="px-3 py-1 bg-void border border-void-border text-gray-400 rounded-full text-xs font-bold uppercase tracking-wider">
-                      Age Parameter: {activeChar.age}
-                    </span>
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* Unique Ability */}
-                    <div className="border border-void-border bg-void/30 p-4 rounded-xl">
-                      <h3 className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">
-                        <Zap size={14} className="text-heritage-gold" /> Core Trait // Ability
-                      </h3>
-                      <p className="text-lg font-black text-white tracking-tight">{activeChar.ability}</p>
-                    </div>
-
-                    {/* Biography Description */}
-                    <div>
-                      <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Biography Data</h3>
-                      <p className="text-gray-300 leading-relaxed text-sm md:text-base border-l-2 border-rift-primary pl-4 font-light">
-                        {activeChar.bio}
-                      </p>
-                    </div>
-
-                    {/* Combat Capability Metrics */}
-                    <div className="bg-void/50 p-6 rounded-xl border border-void-border">
-                      <h3 className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest mb-5">
-                        <Activity size={14} className="text-tech-cyan" /> Combat Efficiency Analytics
-                      </h3>
-                      
-                      {/* Strength */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-xs mb-1.5 font-bold tracking-wide">
-                          <span className="text-red-400 flex items-center gap-1"><Target size={12} /> STRENGTH</span>
-                          <span className="text-gray-400 font-mono">{activeChar.stats.strength} / 10</span>
-                        </div>
-                        <div className="h-1.5 bg-void rounded-full overflow-hidden border border-void-border">
-                          <div className="h-full bg-linear-to-r from-red-600 to-red-400" style={{ width: `${activeChar.stats.strength * 10}%` }}></div>
-                        </div>
-                      </div>
-
-                      {/* Intelligence */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-xs mb-1.5 font-bold tracking-wide">
-                          <span className="text-tech-cyan flex items-center gap-1"><Target size={12} /> INTELLIGENCE</span>
-                          <span className="text-gray-400 font-mono">{activeChar.stats.intelligence} / 10</span>
-                        </div>
-                        <div className="h-1.5 bg-void rounded-full overflow-hidden border border-void-border">
-                          <div className="h-full bg-linear-to-r from-tech-cyan to-cyan-400" style={{ width: `${activeChar.stats.intelligence * 10}%` }}></div>
-                        </div>
-                      </div>
-
-                      {/* Speed */}
-                      <div>
-                        <div className="flex justify-between text-xs mb-1.5 font-bold tracking-wide">
-                          <span className="text-rift-primary flex items-center gap-1"><Target size={12} /> SPEED / AGILITY</span>
-                          <span className="text-gray-400 font-mono">{activeChar.stats.speed} / 10</span>
-                        </div>
-                        <div className="h-1.5 bg-void rounded-full overflow-hidden border border-void-border">
-                          <div className="h-full bg-linear-to-r from-rift-primary to-purple-400" style={{ width: `${activeChar.stats.speed * 10}%` }}></div>
-                        </div>
-                      </div>
-
-                    </div>
+                  <div className="bb" style={{ fontSize: 17, letterSpacing: "0.04em", color: "#fff" }}>
+                    {activeChar.ability}
                   </div>
                 </div>
 
+                {/* Biography */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{
+                    fontSize: 8, letterSpacing: "0.28em", fontWeight: 700,
+                    color: "rgba(255,255,255,0.25)", textTransform: "uppercase" as const, marginBottom: 9,
+                  }}>
+                    Biography
+                  </div>
+                  <p style={{
+                    fontSize: 13, fontWeight: 300, color: "rgba(255,255,255,0.52)",
+                    lineHeight: 1.82,
+                    borderLeft: `2px solid rgba(${SR_RGB},0.4)`, paddingLeft: 13,
+                  }}>
+                    {activeChar.bio}
+                  </p>
+                </div>
+
+                {/* Stats */}
+                <div style={{
+                  padding: "16px 16px", borderRadius: 2,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "rgba(255,255,255,0.02)",
+                }}>
+                  <div style={{
+                    fontSize: 8, letterSpacing: "0.28em", fontWeight: 700,
+                    color: "rgba(255,255,255,0.25)", textTransform: "uppercase" as const,
+                    marginBottom: 16, display: "flex", alignItems: "center", gap: 5,
+                  }}>
+                    <Activity size={10} /> Stats
+                  </div>
+
+                  {/* Strength */}
+                  <div style={{ marginBottom: 13 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: "#EF4444", letterSpacing: "0.2em" }}>STRENGTH</span>
+                      <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>{activeChar.stats.strength}/10</span>
+                    </div>
+                    <div className="stat-bar">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${activeChar.stats.strength * 10}%` }}
+                        transition={{ duration: 0.72, delay: 0.15 }}
+                        style={{ height: "100%", background: "linear-gradient(to right, #EF4444, #F87171)" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Intelligence */}
+                  <div style={{ marginBottom: 13 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: "#06B6D4", letterSpacing: "0.2em" }}>INTELLIGENCE</span>
+                      <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>{activeChar.stats.intelligence}/10</span>
+                    </div>
+                    <div className="stat-bar">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${activeChar.stats.intelligence * 10}%` }}
+                        transition={{ duration: 0.72, delay: 0.27 }}
+                        style={{ height: "100%", background: "linear-gradient(to right, #06B6D4, #67E8F9)" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Speed */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: SR_COLOR, letterSpacing: "0.2em" }}>SPEED</span>
+                      <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>{activeChar.stats.speed}/10</span>
+                    </div>
+                    <div className="stat-bar">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${activeChar.stats.speed * 10}%` }}
+                        transition={{ duration: 0.72, delay: 0.39 }}
+                        style={{ height: "100%", background: `linear-gradient(to right, ${SR_COLOR}, #A78BFA)` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

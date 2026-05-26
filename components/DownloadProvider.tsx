@@ -92,8 +92,10 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
         try {
           const existing = await cache.match(url);
           if (!existing) {
-            const response = await fetch(url, { mode: 'cors', cache: 'reload' });
-            if (!response.ok) throw new Error("Fetch failed");
+            // Use no-cors so R2 images (which lack CORS headers) can still be cached.
+            // Opaque responses (status=0) are intentional here — they can be stored and
+            // served from the Cache API even though response.ok is always false.
+            const response = await fetch(url, { mode: 'no-cors', cache: 'reload' });
             await cache.put(url, response);
           }
           count++;

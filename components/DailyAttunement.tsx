@@ -2,169 +2,147 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { Zap, Sparkles, Feather, Check } from "lucide-react";
+import { Zap, Check, Flame } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function DailyAttunement() {
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  
-  // Immersive Comic Metrics
-  const [streak, setStreak] = useState(0);
-  const [hasAttunedToday, setHasAttunedToday] = useState(false);
-  const [showXpPopup, setShowXpPopup] = useState(false);
+export default function DailyCheckIn() {
+  const [loading, setLoading]           = useState(true);
+  const [userId, setUserId]             = useState<string | null>(null);
+  const [streak, setStreak]             = useState(0);
+  const [checkedInToday, setCheckedIn]  = useState(false);
+  const [showReward, setShowReward]     = useState(false);
+  const [lastXP, setLastXP]            = useState(25);
 
   useEffect(() => {
-    const syncDossierData = async () => {
+    (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      if (!user) { setLoading(false); return; }
       setUserId(user.id);
-
-      // Fetch user profile metrics
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("streak, last_check_in")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setStreak(profile.streak || 0);
-        
-        if (profile.last_check_in) {
-          const lastCheckInDate = new Date(profile.last_check_in).toDateString();
-          const todayDate = new Date().toDateString();
-          if (lastCheckInDate === todayDate) {
-            setHasAttunedToday(true);
-          }
+      const { data: p } = await supabase
+        .from("profiles").select("streak, last_check_in").eq("id", user.id).single();
+      if (p) {
+        setStreak(p.streak || 0);
+        if (p.last_check_in) {
+          const same = new Date(p.last_check_in).toDateString() === new Date().toDateString();
+          setCheckedIn(same);
         }
       }
       setLoading(false);
-    };
-
-    syncDossierData();
+    })();
   }, []);
 
-  const handleAttunement = async () => {
-    if (!userId || hasAttunedToday) return;
-
-    setHasAttunedToday(true);
-    setShowXpPopup(true);
-    
+  const handleCheckIn = async () => {
+    if (!userId || checkedInToday) return;
     const newStreak = streak + 1;
+    const xp = newStreak % 7 === 0 ? 150 : 25;
+    setCheckedIn(true);
     setStreak(newStreak);
-
-    // Calculate dynamic shonen rewards
-    const isWeeklyMilestone = newStreak % 7 === 0;
-    const xpReward = isWeeklyMilestone ? 150 : 25; // 25 XP normal, 150 XP for completing a week layout
-
-    // Update database profiles via RPC function or clean updates
-    await supabase.rpc("process_daily_sync", { 
-      user_id: userId, 
-      xp_reward: xpReward,
-      new_streak: newStreak
-    });
-
-    // Hide animation popup after buffer window expires
-    setTimeout(() => setShowXpPopup(false), 4000);
+    setLastXP(xp);
+    setShowReward(true);
+    await supabase.rpc("process_daily_sync", { user_id: userId, xp_reward: xp, new_streak: newStreak });
+    setTimeout(() => setShowReward(false), 3500);
   };
 
   if (loading || !userId) return null;
 
-  // Render a 7-panel blank manga grid structure
-  const panels = Array.from({ length: 7 }, (_, i) => i + 1);
-  // Track current active index within the current week cycle
-  const currentWeekIndex = (streak % 7 === 0 && streak > 0 && hasAttunedToday) ? 7 : (streak % 7);
+  const weekPos = streak % 7 === 0 && streak > 0 && checkedInToday ? 7 : streak % 7;
 
   return (
-    <div className="w-full bg-void-surface border border-void-border rounded-3xl p-6 relative overflow-hidden shadow-2xl">
-      
-      {/* Dynamic Pop-up alert for anime stat increases */}
+    <div style={{
+      position: "relative", borderRadius: 2, overflow: "hidden",
+      border: "1px solid rgba(255,255,255,0.08)",
+      background: "rgba(255,255,255,0.02)",
+      padding: "22px 20px",
+    }}>
+      {/* XP reward flash */}
       <AnimatePresence>
-        {showXpPopup && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8, y: -20 }}
-            className="absolute inset-0 bg-void/95 backdrop-blur-md z-30 flex flex-col items-center justify-center text-center p-4"
+        {showReward && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: "absolute", inset: 0, zIndex: 20,
+              background: "rgba(3,1,12,0.95)", backdropFilter: "blur(12px)",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
+            }}
           >
-            <Sparkles className="text-heritage-gold animate-bounce mb-2" size={32} />
-            <h4 className="text-xl font-black text-white uppercase tracking-tighter">Resonance Increased!</h4>
-            <p className="text-xs font-mono text-gray-400 mt-1">
-              +{streak % 7 === 0 ? "150 CRITICAL" : "25"} XP ADDED TO CORE ID
-            </p>
+            <Flame size={32} color="#F59E0B" />
+            <div style={{ fontFamily: "'Bebas Neue'", fontSize: 26, letterSpacing: "0.06em", color: "#fff" }}>
+              +{lastXP} XP
+            </div>
+            <div style={{ fontFamily: "'DM Sans'", fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.15em" }}>
+              {lastXP === 150 ? "WEEKLY BONUS" : "DAILY CHECK-IN"}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Title block formatted like an index ledger */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-void-border">
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h3 className="text-lg font-black tracking-tight text-white uppercase flex items-center gap-2">
-            <Feather size={16} className="text-rift-primary" /> Serialization Progress
-          </h3>
-          <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase mt-0.5">
-            Ink consecutive chapters to stabilize synchronization // Streak: {streak} Days
-          </p>
+          <div style={{ fontFamily: "'Bebas Neue'", fontSize: 11, letterSpacing: "0.35em", color: "rgba(255,255,255,0.28)", marginBottom: 4 }}>
+            This Week
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Flame size={15} color="#F59E0B" />
+            <span style={{ fontFamily: "'Bebas Neue'", fontSize: 18, letterSpacing: "0.06em", color: "#fff" }}>
+              {streak} Day Streak
+            </span>
+          </div>
         </div>
-
         <button
-          disabled={hasAttunedToday}
-          onClick={handleAttunement}
-          className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
-            hasAttunedToday 
-              ? 'bg-void border border-void-border text-gray-500 cursor-default' 
-              : 'bg-linear-to-r from-rift-primary to-tech-cyan text-white hover:scale-105 shadow-[0_0_20px_rgba(139,92,246,0.3)]'
-          }`}
+          disabled={checkedInToday}
+          onClick={handleCheckIn}
+          style={{
+            display: "flex", alignItems: "center", gap: 7,
+            padding: "9px 18px", borderRadius: 2, cursor: checkedInToday ? "default" : "pointer",
+            fontFamily: "'Bebas Neue'", fontSize: 12, letterSpacing: "0.18em",
+            background: checkedInToday ? "rgba(255,255,255,0.04)" : "#fff",
+            color: checkedInToday ? "rgba(255,255,255,0.3)" : "#000",
+            border: checkedInToday ? "1px solid rgba(255,255,255,0.08)" : "none",
+            boxShadow: checkedInToday ? "none" : "3px 3px 0 rgba(139,92,246,0.6)",
+            transition: "all 0.2s",
+          }}
         >
-          {hasAttunedToday ? (
-            <><Check size={14} /> Layout Saved</>
-          ) : (
-            <><Zap size={14} fill="currentColor" /> Ink Today's Panel</>
-          )}
+          {checkedInToday ? <><Check size={11} /> Done Today</> : <><Zap size={11} fill="black" /> Check In</>}
         </button>
       </div>
 
-      {/* --- ASYMMETRICAL STORYBOARD GRID LAYOUT --- */}
-      {/* This renders blocks to look like dynamic comic strip pages */}
-      <div className="grid grid-cols-12 gap-3 auto-rows-[80px]">
-        {panels.map((panelIndex) => {
-          const isCurrentTarget = panelIndex === currentWeekIndex + 1 && !hasAttunedToday;
-          const isCompleted = panelIndex <= currentWeekIndex;
-          const isWeeklyFinal = panelIndex === 7;
-
+      {/* 7-day grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+        {Array.from({ length: 7 }, (_, i) => {
+          const pos    = i + 1;
+          const done   = pos <= weekPos;
+          const active = pos === weekPos + 1 && !checkedInToday;
+          const isFinal = pos === 7;
           return (
-            <div
-              key={panelIndex}
-              className={`
-                relative rounded-xl border p-3 flex flex-col justify-between transition-all duration-500
-                ${isWeeklyFinal ? 'col-span-6 sm:col-span-4' : 'col-span-3 sm:col-span-2'}
-                ${isCompleted ? 'bg-rift-primary/5 border-rift-primary/40 text-rift-primary' : 'bg-void border-void-border text-gray-600'}
-                ${isCurrentTarget ? 'border-dashed border-tech-cyan animate-pulse bg-tech-cyan/5 text-tech-cyan' : ''}
-              `}
-            >
-              <span className="text-[9px] font-mono font-bold tracking-widest block opacity-50">
-                P.{String(panelIndex).padStart(2, '0')}
-              </span>
-
-              {isCompleted ? (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute bottom-2 right-2 text-rift-primary">
-                  <Feather size={14} fill="currentColor" className="rotate-45" />
-                </motion.div>
-              ) : isWeeklyFinal ? (
-                <span className="text-[9px] font-black text-heritage-gold tracking-widest uppercase absolute bottom-2 right-3 flex items-center gap-1">
-                  <Sparkles size={10} /> Bonus
-                </span>
-              ) : null}
-
-              <span className={`text-xs font-black tracking-tighter uppercase self-end ${isCompleted ? 'text-white' : ''} ${isCurrentTarget ? 'text-tech-cyan' : ''}`}>
-                {isWeeklyFinal ? 'Finish' : isCompleted ? 'Inked' : 'Draft'}
-              </span>
+            <div key={i} style={{
+              height: 42, borderRadius: 2, display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 3,
+              border: done
+                ? "1px solid rgba(139,92,246,0.45)"
+                : active
+                  ? "1px dashed rgba(245,158,11,0.6)"
+                  : "1px solid rgba(255,255,255,0.06)",
+              background: done
+                ? "rgba(139,92,246,0.12)"
+                : active
+                  ? "rgba(245,158,11,0.05)"
+                  : "rgba(255,255,255,0.02)",
+              transition: "all 0.3s",
+            }}>
+              {done
+                ? <Check size={12} color="#8B5CF6" strokeWidth={3} />
+                : <span style={{ fontFamily: "'Bebas Neue'", fontSize: 10, letterSpacing: "0.1em", color: isFinal ? "#F59E0B" : "rgba(255,255,255,0.18)" }}>
+                    {isFinal ? "★" : `D${pos}`}
+                  </span>
+              }
             </div>
           );
         })}
       </div>
-
+      <div style={{ marginTop: 8, fontFamily: "'DM Sans'", fontSize: 9, letterSpacing: "0.12em", color: "rgba(255,255,255,0.2)" }}>
+        Day 7 gives 150 XP bonus · Check in daily to keep your streak
+      </div>
     </div>
   );
 }

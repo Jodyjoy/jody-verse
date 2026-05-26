@@ -44,8 +44,38 @@ export default function MangaReader() {
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
   const [hasScrolledToTarget, setHasScrolledToTarget] = useState(false);
 
-  const lastScrollY = useRef(0);
-  const pageRefs = useRef<HTMLDivElement[]>([]);
+  const lastScrollY  = useRef(0);
+  const pageRefs     = useRef<HTMLDivElement[]>([]);
+  const touchStartX  = useRef<number | null>(null);
+
+  /* ─── Touch swipe + keyboard (frame mode only) ───────────────── */
+  useEffect(() => {
+    if (readingMode !== "manga") return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft")  setCurrentPage(p => Math.max(0, p - 1));
+      if (e.key === "ArrowRight") setCurrentPage(p => Math.min(pages.length - 1, p + 1));
+    };
+
+    const onTouchStart = (e: TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+    const onTouchEnd   = (e: TouchEvent) => {
+      if (touchStartX.current === null) return;
+      const delta = touchStartX.current - e.changedTouches[0].clientX;
+      if (Math.abs(delta) < 50) return; // ignore tiny taps
+      if (delta > 0) setCurrentPage(p => Math.min(pages.length - 1, p + 1)); // swipe left → next
+      else            setCurrentPage(p => Math.max(0, p - 1));               // swipe right → prev
+      touchStartX.current = null;
+    };
+
+    window.addEventListener("keydown",     onKeyDown);
+    window.addEventListener("touchstart",  onTouchStart, { passive: true });
+    window.addEventListener("touchend",    onTouchEnd,   { passive: true });
+    return () => {
+      window.removeEventListener("keydown",    onKeyDown);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend",   onTouchEnd);
+    };
+  }, [readingMode, pages.length]);
 
   /* ─── 1. Data hydration ──────────────────────────────────────── */
   useEffect(() => {

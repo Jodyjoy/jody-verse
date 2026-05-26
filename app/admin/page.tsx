@@ -387,7 +387,7 @@ export default function AdminPage() {
     e.preventDefault();
     if (!mangaFiles || mangaFiles.length === 0 || !mangaChapter) return;
     setLoading(true);
-    setMsg({ text: "Uploading pages…", type: "info" });
+    setMsg({ text: "Uploading pages to Cloudflare R2…", type: "info" });
 
     const chapterId = parseInt(mangaChapter);
     const mangaId   = parseInt(selectedMangaId);
@@ -408,10 +408,25 @@ export default function AdminPage() {
 
     for (let i = 0; i < mangaFiles.length; i++) {
       const file = mangaFiles[i];
-      const path = `manga-${mangaId}/ch-${chapterId}/${Date.now()}-${i}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from("manga-pages").upload(path, file);
-      if (upErr) { console.error(upErr); continue; }
-      const { data: { publicUrl } } = supabase.storage.from("manga-pages").getPublicUrl(path);
+      const r2Path = `manga-${mangaId}/ch-${chapterId}/${Date.now()}-${mangaId}-${file.name}`;
+
+      // Upload to Cloudflare R2 via server API route
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("path", r2Path);
+
+      let publicUrl = "";
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        if (!res.ok) throw new Error(await res.text());
+        const json = await res.json();
+        publicUrl = json.url;
+      } catch (err) {
+        console.error("R2 upload failed:", err);
+        setMsg({ text: `Page ${i + 1} upload failed. Check console.`, type: "error" });
+        continue;
+      }
+
       const { error: dbErr } = await supabase.from("manga_pages").insert([{
         manga_id: mangaId, chapter_id: chapterId,
         page_number: offset + i + 1, image_url: publicUrl
@@ -449,11 +464,19 @@ export default function AdminPage() {
     setLoading(true);
     setMsg({ text: `Deleting ${mangaName} Ch. ${chapId}…`, type: "info" });
 
-    const folder = `manga-${mId}/ch-${chapId}`;
-    const { data: files } = await supabase.storage.from("manga-pages").list(folder);
-    if (files?.length) {
-      await supabase.storage.from("manga-pages").remove(files.map(f => `${folder}/${f.name}`));
+    // Delete from Cloudflare R2
+    const r2Prefix = `manga-${mId}/ch-${chapId}/`;
+    try {
+      await fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prefix: r2Prefix }),
+      });
+    } catch (err) {
+      console.warn("R2 delete warning:", err);
     }
+
+    // Delete database records
     await supabase.from("manga_pages").delete().match({ manga_id: mId, chapter_id: chapId });
     await supabase.from("manga_chapters").delete().match({ manga_id: mId, chapter_number: chapId });
     await supabase.from("comments").delete().match({ slug: `manga-${mId}-ch-${chapId}` });

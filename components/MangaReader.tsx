@@ -392,7 +392,6 @@ export default function MangaReader() {
                     alt={`Panel ${index + 1}`}
                     className="no-save"
                     style={{ width: "100%", height: "auto", display: "block" }}
-                    crossOrigin="anonymous"
                     loading={index < 2 ? "eager" : "lazy"}
                   />
                   {/* Thin separator between pages */}
@@ -432,7 +431,6 @@ export default function MangaReader() {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="no-save"
                     style={{ maxWidth: "100%", maxHeight: "calc(100vh - 148px)", objectFit: "contain", display: "block" }}
-                    crossOrigin="anonymous"
                   />
                 </AnimatePresence>
               </div>

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   cacheOnFrontEndNav: true,
@@ -13,7 +14,20 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 });
 
 const nextConfig: NextConfig = {
-  // Your other config options go here if you have any
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'pub-39f01a5c44b74382a3af896226564088.r2.dev',
+        pathname: '/**', // Allows all folders in your R2 bucket
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co', // Keeps Supabase access alive for avatars/old files
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default withPWA(nextConfig);

@@ -35,9 +35,9 @@ const MANGA_META = [
   {
     id: 3,
     title: "KATIKATI",
-    cover: null,
+    cover: "/katikati_cover.jpeg",
     description:
-      "A soul trapped between life and death navigates Katikati — the liminal space where the dead linger, secrets fester, and finding the way home may cost everything.",
+      "Nine young Kenyans. An endless mall. No memory of how they got there. They must escape Katikati — the in between — without knowing that getting out comes at a cost.",
     genre: ["Supernatural", "Mystery", "Thriller"],
     status: "Coming Soon",
     color: "#EC4899",

@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const SERIES_META: Record<string, { color: string; accentRgb: string; cover: string | null; label: string }> = {
   "1": { color: "#8B5CF6", accentRgb: "139,92,246", cover: "/spectral_rift_cover.jpeg", label: "Spectral Rift" },
   "2": { color: "#F59E0B", accentRgb: "245,158,11", cover: "/urithi_cover.jpeg",         label: "Urithi" },
-  "3": { color: "#EC4899", accentRgb: "236,72,153", cover: null,                         label: "Katikati" },
+  "3": { color: "#EC4899", accentRgb: "236,72,153", cover: "/katikati_cover.jpeg",         label: "Katikati" },
 };
 
 interface MangaPage { id: number | string; url: string; }

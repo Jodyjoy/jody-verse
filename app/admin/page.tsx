@@ -434,7 +434,7 @@ export default function AdminPage() {
       if (!dbErr) successCount++;
     }
 
-    const mangaName = mangaId === 1 ? "Spectral Rift" : "Urithi";
+    const mangaName = mangaId === 1 ? "Spectral Rift" : mangaId === 2 ? "Urithi" : "Katikati";
     if (offset === 0) {
       try {
         await fetch("/api/notify", {
@@ -458,7 +458,7 @@ export default function AdminPage() {
     e.preventDefault();
     const chapId    = parseInt(deleteChapter);
     const mId       = parseInt(deleteMangaId);
-    const mangaName = mId === 1 ? "Spectral Rift" : "Urithi";
+    const mangaName = mId === 1 ? "Spectral Rift" : mId === 2 ? "Urithi" : "Katikati";
     if (!confirm(`Delete ${mangaName} Chapter ${chapId}? This is permanent.`)) return;
 
     setLoading(true);
@@ -886,6 +886,7 @@ export default function AdminPage() {
                 <select value={selectedMangaId} onChange={e => setMangaId(e.target.value)} className="field">
                   <option value="1">Spectral Rift</option>
                   <option value="2">Urithi</option>
+                  <option value="3">Katikati</option>
                 </select>
               </div>
               <div style={{ marginBottom: 14 }}>
@@ -937,6 +938,7 @@ export default function AdminPage() {
                   className="field" style={{ borderColor: C.dangerBorder }}>
                   <option value="1">Spectral Rift</option>
                   <option value="2">Urithi</option>
+                  <option value="3">Katikati</option>
                 </select>
               </div>
               <div style={{ marginBottom: 20 }}>

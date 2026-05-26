@@ -1,34 +1,43 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Menu, LayoutList, BookOpen, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import {
+  ArrowLeft, Menu, LayoutList, BookOpen,
+  ChevronLeft, ChevronRight, Settings, ArrowRight,
+} from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import { useParams, useRouter, useSearchParams } from "next/navigation"; 
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
-import BookmarkButton from "./BookmarkButton"; 
-import SubscribeButton from "./SubscribeButton"; 
-import { motion, AnimatePresence } from "framer-motion"; 
+import BookmarkButton from "./BookmarkButton";
+import SubscribeButton from "./SubscribeButton";
+import { motion, AnimatePresence } from "framer-motion";
 
-interface MangaPage {
-  id: number | string;
-  url: string;
-}
+/* ─── Series branding lookup ─────────────────────────────────── */
+const SERIES_META: Record<string, { color: string; accentRgb: string; cover: string; label: string }> = {
+  "1": { color: "#8B5CF6", accentRgb: "139,92,246", cover: "/spectral_rift_cover.jpeg", label: "Spectral Rift" },
+  "2": { color: "#F59E0B", accentRgb: "245,158,11", cover: "/urithi_cover.jpeg",         label: "Urithi" },
+};
+
+interface MangaPage { id: number | string; url: string; }
 
 export default function MangaReader() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const mangaId = searchParams.get('manga') || "1"; 
-  const targetPageParam = searchParams.get('page');
+  const mangaId = searchParams.get("manga") || "1";
+  const targetPageParam = searchParams.get("page");
 
-  // --- PLATFORM ENGINE STATES ---
+  const meta = SERIES_META[mangaId] || SERIES_META["1"];
+  const mangaTitle = mangaId === "1" ? "SPECTRAL RIFT" : "URITHI";
+  const uniqueSlug = `manga-${mangaId}-ch-${id}`;
+
+  /* ─── State ─────────────────────────────────────────────────── */
   const [pages, setPages] = useState<MangaPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [xpAwarded, setXpAwarded] = useState(false);
-  
-  const [readingMode, setReadingMode] = useState<'webtoon' | 'manga'>('webtoon');
+  const [readingMode, setReadingMode] = useState<"webtoon" | "manga">("webtoon");
   const [currentPage, setCurrentPage] = useState(0);
   const [showHeader, setShowHeader] = useState(true);
   const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
@@ -36,343 +45,492 @@ export default function MangaReader() {
 
   const lastScrollY = useRef(0);
   const pageRefs = useRef<HTMLDivElement[]>([]);
-  const mangaTitle = mangaId === "1" ? "SPECTRAL RIFT" : "URITHI";
-  const uniqueSlug = `manga-${mangaId}-ch-${id}`;
 
-  // 1. DATA HYDRATION
+  /* ─── 1. Data hydration ──────────────────────────────────────── */
   useEffect(() => {
-    if (!id) return; 
-
+    if (!id) return;
     const fetchPages = async () => {
       setLoading(true);
       let onlineData = null;
       let fetchError = null;
-
       try {
         const { data, error } = await supabase
-          .from('manga_pages')
-          .select('*')
-          .eq('manga_id', mangaId) 
-          .eq('chapter_id', id)
-          .order('page_number', { ascending: true });
-        
+          .from("manga_pages")
+          .select("*")
+          .eq("manga_id", mangaId)
+          .eq("chapter_id", id)
+          .order("page_number", { ascending: true });
         if (error) fetchError = error;
         else onlineData = data;
       } catch (err) {
         fetchError = err;
       }
-
       if (!fetchError && onlineData && onlineData.length > 0) {
-        const formattedPages = onlineData.map((page: any) => ({
-            id: page.id,
-            url: page.image_url
-        }));
-        setPages(formattedPages);
+        setPages(onlineData.map((p: any) => ({ id: p.id, url: p.image_url })));
       } else {
-        const offlineData = localStorage.getItem('offline_library');
+        const offlineData = localStorage.getItem("offline_library");
         if (offlineData) {
-            const library = JSON.parse(offlineData);
-            const savedChapter = library.find((c: any) => 
-                String(c.chapter_number) === String(id) && String(c.manga_id) === String(mangaId)
-            );
-
-            if (savedChapter && savedChapter.pages) {
-                const formattedPages = savedChapter.pages.map((url: string, index: number) => ({
-                    id: `offline-${index}`,
-                    url: url
-                }));
-                setPages(formattedPages);
-            }
+          const library = JSON.parse(offlineData);
+          const saved = library.find(
+            (c: any) => String(c.chapter_number) === String(id) && String(c.manga_id) === String(mangaId)
+          );
+          if (saved?.pages) {
+            setPages(saved.pages.map((url: string, i: number) => ({ id: `offline-${i}`, url })));
+          }
         }
       }
       setLoading(false);
     };
-
     fetchPages();
   }, [id, mangaId]);
 
-  // 2. INITIALIZE READING MODE & TARGET ENTRY PAGE
+  /* ─── 2. Reading mode init ───────────────────────────────────── */
   useEffect(() => {
-    const savedMode = localStorage.getItem("preferred_reading_mode");
-    if (savedMode === "webtoon" || savedMode === "manga") {
-      setReadingMode(savedMode);
-    }
+    const saved = localStorage.getItem("preferred_reading_mode");
+    if (saved === "webtoon" || saved === "manga") setReadingMode(saved);
   }, []);
 
+  /* ─── 3. Target page scroll ──────────────────────────────────── */
   useEffect(() => {
     if (!loading && pages.length > 0 && targetPageParam) {
-      const parsedPage = parseInt(targetPageParam);
-      if (parsedPage >= 0 && parsedPage < pages.length) {
-        setCurrentPage(parsedPage);
-        
-        // If webtoon mode, trigger scroll target positioning mechanics
-        if (readingMode === 'webtoon' && !hasScrolledToTarget) {
+      const parsed = parseInt(targetPageParam);
+      if (parsed >= 0 && parsed < pages.length) {
+        setCurrentPage(parsed);
+        if (readingMode === "webtoon" && !hasScrolledToTarget) {
           setTimeout(() => {
-            const targetEl = pageRefs.current[parsedPage];
-            if (targetEl) {
-              targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
-              setHasScrolledToTarget(true);
-            }
-          }, 400); // Small buffer to ensure browser layout mapping is stable
+            const el = pageRefs.current[parsed];
+            if (el) { el.scrollIntoView({ behavior: "smooth", block: "start" }); setHasScrolledToTarget(true); }
+          }, 400);
         }
       }
     }
   }, [loading, pages, targetPageParam, readingMode, hasScrolledToTarget]);
 
-  // 3. PERSIST ACTIVE TRACKING CHECKPOINTS TO MATRIX LOCALSTORAGE
+  /* ─── 4. Reading history persistence ────────────────────────── */
   useEffect(() => {
     if (!loading && pages.length > 0) {
-      const readingHistory = JSON.parse(localStorage.getItem("user_reading_history") || "{}");
-      readingHistory[mangaId] = {
-        chapter: id,
-        page: currentPage, // 👈 Stores exact page coordinates dynamically
-        timestamp: Date.now(),
-        title: mangaTitle
-      };
-      localStorage.setItem("user_reading_history", JSON.stringify(readingHistory));
+      const hist = JSON.parse(localStorage.getItem("user_reading_history") || "{}");
+      hist[mangaId] = { chapter: id, page: currentPage, timestamp: Date.now(), title: mangaTitle };
+      localStorage.setItem("user_reading_history", JSON.stringify(hist));
     }
   }, [currentPage, loading, pages, id, mangaId, mangaTitle]);
 
-  // 4. SCROLL PROGRESS
+  /* ─── 5. Scroll progress + HUD hide/show ────────────────────── */
   useEffect(() => {
-    if (readingMode !== 'webtoon') return;
-
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-      
-      if (totalHeight > 0) {
-        setProgress((currentScrollY / totalHeight) * 100);
-      }
-
-      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        setShowHeader(false); 
-      } else {
-        setShowHeader(true);  
-      }
-      lastScrollY.current = currentScrollY;
+    if (readingMode !== "webtoon") return;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const total = document.documentElement.scrollHeight - window.innerHeight;
+      if (total > 0) setProgress((y / total) * 100);
+      setShowHeader(y <= lastScrollY.current || y <= 80);
+      lastScrollY.current = y;
     };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, [readingMode]);
 
   useEffect(() => {
-    if (readingMode === 'manga' && pages.length > 0) {
+    if (readingMode === "manga" && pages.length > 0) {
       setProgress(((currentPage + 1) / pages.length) * 100);
     }
   }, [currentPage, readingMode, pages]);
 
-  // 5. BACKEND XP SYSTEM
+  /* ─── 6. XP award ───────────────────────────────────────────── */
   useEffect(() => {
     if (progress > 90 && !xpAwarded) {
-        const awardXP = async () => {
-            setXpAwarded(true); 
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                await supabase.rpc('add_xp', { amount: 50 });
-            }
-        };
-        awardXP();
+      setXpAwarded(true);
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) await supabase.rpc("add_xp", { amount: 50 });
+      })();
     }
   }, [progress, xpAwarded]);
 
-  const handleModeChange = (mode: 'webtoon' | 'manga') => {
+  const handleModeChange = (mode: "webtoon" | "manga") => {
     setReadingMode(mode);
     localStorage.setItem("preferred_reading_mode", mode);
     setShowSettingsDrawer(false);
     setHasScrolledToTarget(false);
     setCurrentPage(0);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /* ─── Loading screen ─────────────────────────────────────────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-void flex flex-col items-center justify-center font-mono tracking-widest text-rift-primary animate-pulse">
-        LOADING RIFT ENGINE // {mangaTitle} CH {id}
+      <div style={{
+        minHeight: "100vh", background: "#03010C",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        position: "relative", overflow: "hidden",
+        fontFamily: "'Bebas Neue', sans-serif",
+      }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&display=swap');`}</style>
+        {/* Cover art background */}
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: `url('${meta.cover}')`,
+          backgroundSize: "cover", backgroundPosition: "center",
+          opacity: 0.12,
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: `radial-gradient(ellipse 60% 50% at 50% 50%, rgba(${meta.accentRgb},0.18) 0%, transparent 70%)`,
+        }} />
+        {/* Halftone */}
+        <div style={{
+          position: "absolute", inset: 0, pointerEvents: "none",
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
+        }} />
+        <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
+          <div style={{ fontSize: 9, letterSpacing: "0.5em", color: meta.color, marginBottom: 8, opacity: 0.9 }}>
+            {meta.label}
+          </div>
+          <div style={{ fontSize: 22, letterSpacing: "0.15em", color: "#fff", marginBottom: 6 }}>
+            {mangaTitle}
+          </div>
+          <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, letterSpacing: "0.2em", color: "rgba(255,255,255,0.28)", marginBottom: 36, textTransform: "uppercase" }}>
+            Chapter {id} · Preparing
+          </div>
+          {/* Animated loading bar */}
+          <div style={{ width: 180, height: 2, background: "rgba(255,255,255,0.07)", margin: "0 auto", overflow: "hidden", position: "relative" }}>
+            <motion.div
+              animate={{ x: ["-100%", "200%"] }}
+              transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+              style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "60%", background: meta.color, boxShadow: `0 0 12px rgba(${meta.accentRgb},0.8)` }}
+            />
+          </div>
+        </div>
       </div>
     );
   }
 
+  /* ─── Main reader ────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen bg-void flex flex-col items-center overflow-x-hidden select-none relative">
-      
-      {/* --- HUD HEADER --- */}
-      <motion.div 
-        animate={{ y: showHeader ? 0 : -100 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 w-full h-16 bg-void/80 backdrop-blur-xl z-50 flex items-center justify-between px-6 border-b border-void-border"
+    <div style={{
+      minHeight: "100vh", background: "#03010C",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      overflow: "hidden", position: "relative",
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&display=swap');
+        .bb { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+        .no-save { user-select: none; -webkit-user-select: none; pointer-events: none; }
+        .nav-btn {
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 11px 28px; border-radius: 2px; cursor: pointer;
+          font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 0.14em;
+          text-transform: uppercase; transition: transform 0.12s, box-shadow 0.12s;
+        }
+        .nav-btn:hover { transform: translate(-2px,-2px); }
+        .nav-btn:disabled { opacity: 0.28; cursor: not-allowed; transform: none; }
+        .btn-white {
+          background: #fff; color: #000;
+          box-shadow: 3px 3px 0 rgba(255,255,255,0.2);
+        }
+        .btn-white:hover:not(:disabled) { box-shadow: 5px 5px 0 rgba(255,255,255,0.2); }
+        .btn-ghost {
+          background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.65);
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+        }
+        .btn-ghost:hover:not(:disabled) { box-shadow: 5px 5px 0 rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.25); color: #fff; }
+      `}</style>
+
+      {/* ── HUD Header ── */}
+      <motion.div
+        animate={{ y: showHeader ? 0 : -72 }}
+        transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          position: "fixed", top: 0, left: 0, width: "100%", zIndex: 50,
+          height: 60, background: "rgba(3,1,12,0.88)", backdropFilter: "blur(24px)",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 20px",
+        }}
       >
-        <button onClick={() => router.push(`/read?manga=${mangaId}`)} className="text-gray-400 hover:text-white transition-colors cursor-pointer">
-          <ArrowLeft size={22} />
+        {/* Back */}
+        <button
+          onClick={() => router.push(`/read?manga=${mangaId}`)}
+          style={{
+            width: 36, height: 36, border: "1px solid rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center",
+            justifyContent: "center", cursor: "pointer", borderRadius: 2,
+            color: "rgba(255,255,255,0.55)", flexShrink: 0,
+          }}
+        >
+          <ArrowLeft size={16} />
         </button>
 
-        <div className="text-center cursor-pointer" onClick={() => setShowHeader(true)}>
-          <span className="text-white font-black tracking-widest text-xs md:text-sm uppercase block">
-            {mangaTitle}
-          </span>
-          <span className="text-[10px] font-bold text-rift-primary tracking-widest uppercase">
-            Chapter {id} • Page {currentPage + 1}/{pages.length}
-          </span>
+        {/* Center info */}
+        <div
+          style={{ textAlign: "center", flex: 1, padding: "0 16px", cursor: "pointer" }}
+          onClick={() => setShowHeader(true)}
+        >
+          <div className="bb" style={{ fontSize: 9, letterSpacing: "0.4em", color: meta.color, lineHeight: 1 }}>
+            {meta.label}
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.38)", marginTop: 2 }}>
+            Chapter {id} · {currentPage + 1} / {pages.length}
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Right actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <BookmarkButton slug={uniqueSlug} title={`${mangaTitle} Ch ${id}`} type="manga" />
-          <button onClick={() => setShowSettingsDrawer(!showSettingsDrawer)} className="text-gray-400 hover:text-white transition-colors cursor-pointer">
-            <Settings size={22} />
+          <button
+            onClick={() => setShowSettingsDrawer(!showSettingsDrawer)}
+            style={{
+              width: 36, height: 36,
+              border: showSettingsDrawer ? `1px solid rgba(${meta.accentRgb},0.5)` : "1px solid rgba(255,255,255,0.1)",
+              background: showSettingsDrawer ? `rgba(${meta.accentRgb},0.18)` : "rgba(255,255,255,0.04)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", borderRadius: 2, color: "rgba(255,255,255,0.6)",
+              transition: "all 0.2s",
+            }}
+          >
+            <Settings size={15} />
           </button>
         </div>
 
-        <div 
-          className="absolute bottom-0 left-0 h-0.5 bg-linear-to-r from-rift-primary to-tech-cyan transition-all duration-150 ease-out shadow-[0_0_10px_rgba(139,92,246,0.6)]"
-          style={{ width: `${progress}%` }}
-        />
+        {/* Progress bar */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, height: 2,
+          width: `${progress}%`, background: meta.color,
+          transition: "width 0.15s ease-out",
+          boxShadow: `0 0 12px rgba(${meta.accentRgb},0.8)`,
+        }} />
       </motion.div>
 
-      {/* --- PREMIUM CONFIG DRAWER --- */}
+      {/* ── Settings drawer ── */}
       <AnimatePresence>
         {showSettingsDrawer && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-6 w-72 bg-void-surface border border-void-border p-5 rounded-2xl shadow-2xl z-50 backdrop-blur-xl"
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.97 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: "fixed", top: 68, right: 14, width: 232, zIndex: 50,
+              background: "rgba(6,3,18,0.96)", backdropFilter: "blur(28px)",
+              border: `1px solid rgba(${meta.accentRgb},0.25)`,
+              boxShadow: `4px 4px 0 rgba(${meta.accentRgb},0.14)`,
+              padding: "16px 14px", borderRadius: 2,
+            }}
           >
-            <h4 className="text-xs font-black tracking-widest uppercase text-gray-500 mb-4">Reading Parameters</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => handleModeChange('webtoon')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border font-bold text-xs gap-2 cursor-pointer transition-all ${readingMode === 'webtoon' ? 'bg-rift-primary/10 border-rift-primary text-white' : 'bg-void border-void-border text-gray-400 hover:text-white'}`}
-              >
-                <LayoutList size={20} /> Vertical Scroll
-              </button>
-              <button 
-                onClick={() => handleModeChange('manga')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border font-bold text-xs gap-2 cursor-pointer transition-all ${readingMode === 'manga' ? 'bg-rift-primary/10 border-rift-primary text-white' : 'bg-void border-void-border text-gray-400 hover:text-white'}`}
-              >
-                <BookOpen size={20} /> Frame Mode
-              </button>
+            <div className="bb" style={{ fontSize: 9, letterSpacing: "0.4em", color: "rgba(255,255,255,0.28)", marginBottom: 12 }}>Reading Mode</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {([
+                { mode: "webtoon", label: "Vertical", Icon: LayoutList, desc: "Scroll down" },
+                { mode: "manga",   label: "Frame",    Icon: BookOpen,   desc: "Page-by-page" },
+              ] as const).map(({ mode, label, Icon, desc }) => (
+                <button
+                  key={mode}
+                  onClick={() => handleModeChange(mode)}
+                  style={{
+                    padding: "12px 8px", cursor: "pointer", borderRadius: 2,
+                    border: readingMode === mode
+                      ? `1px solid rgba(${meta.accentRgb},0.65)`
+                      : "1px solid rgba(255,255,255,0.08)",
+                    background: readingMode === mode
+                      ? `rgba(${meta.accentRgb},0.15)`
+                      : "rgba(255,255,255,0.03)",
+                    color: readingMode === mode ? "#fff" : "rgba(255,255,255,0.4)",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <Icon size={18} />
+                  <div>
+                    <div className="bb" style={{ fontSize: 11, letterSpacing: "0.14em" }}>{label}</div>
+                    <div style={{ fontSize: 8, color: "rgba(255,255,255,0.28)", marginTop: 1 }}>{desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            {/* Keyboard hint */}
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="bb" style={{ fontSize: 9, letterSpacing: "0.3em", color: "rgba(255,255,255,0.2)", marginBottom: 8 }}>Frame mode shortcuts</div>
+              {[["← →", "Navigate"], ["Tap left/right", "Mobile"]].map(([key, action]) => (
+                <div key={key} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 9, fontWeight: 600, color: meta.color, fontFamily: "monospace" }}>{key}</span>
+                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>{action}</span>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* --- THE THEATER RECEPTACLE --- */}
-      <div 
-        className={`w-full max-w-2xl min-h-screen ${readingMode === 'webtoon' ? 'mt-16 pb-12' : 'flex items-center justify-center pt-16'}`}
-        onClick={() => readingMode === 'webtoon' && setShowHeader(!showHeader)}
+      {/* ── Content area ── */}
+      <div
+        style={{
+          width: "100%", maxWidth: 800, minHeight: "100vh",
+          marginTop: readingMode === "webtoon" ? 60 : 0,
+          paddingBottom: readingMode === "webtoon" ? 48 : 0,
+        }}
+        onClick={() => readingMode === "webtoon" && setShowHeader(!showHeader)}
       >
         {pages.length > 0 ? (
-          readingMode === 'webtoon' ? (
-            /* --- WEBTOON MODE --- */
-            <div className="flex flex-col w-full">
+          readingMode === "webtoon" ? (
+            /* ── Webtoon mode ── */
+            <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
               {pages.map((page, index) => (
                 <motion.div
                   key={page.id}
                   ref={(el) => { if (el) pageRefs.current[index] = el; }}
-                  initial={{ opacity: 0, y: 40 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  // 📢 Dynamic Checkpoint Capture: Updates current page coordinates seamlessly as you scroll down
-                  onViewportEnter={() => { if (readingMode === 'webtoon') setCurrentPage(index); }}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  onViewportEnter={() => { if (readingMode === "webtoon") setCurrentPage(index); }}
                   viewport={{ once: true, margin: "-20% 0px -60% 0px" }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                  className="w-full relative overflow-hidden"
+                  transition={{ duration: 0.5 }}
+                  style={{ width: "100%", position: "relative" }}
                 >
-                  <img 
-                    src={page.url} 
-                    alt={`Panel ${index + 1}`} 
-                    className="w-full h-auto block no-save" 
-                    crossOrigin="anonymous" 
+                  <img
+                    src={page.url}
+                    alt={`Panel ${index + 1}`}
+                    className="no-save"
+                    style={{ width: "100%", height: "auto", display: "block" }}
+                    crossOrigin="anonymous"
                     loading={index < 2 ? "eager" : "lazy"}
                   />
+                  {/* Thin separator between pages */}
+                  {index < pages.length - 1 && (
+                    <div style={{ height: 2, background: "#03010C" }} />
+                  )}
                 </motion.div>
               ))}
             </div>
           ) : (
-            /* --- MANGA MODE --- */
-            <div className="w-full h-[calc(100vh-8rem)] flex flex-col justify-between px-4 relative">
-              <div className="absolute inset-y-0 left-0 w-1/4 z-30 cursor-w-resize" onClick={() => setCurrentPage(p => Math.max(0, p - 1))} />
-              <div className="absolute inset-y-0 right-0 w-1/4 z-30 cursor-e-resize" onClick={() => setCurrentPage(p => Math.min(pages.length - 1, p + 1))} />
+            /* ── Manga / frame mode ── */
+            <div style={{
+              width: "100%", height: "100vh",
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
+              paddingTop: 60,
+            }}>
+              {/* Tap zones */}
+              <div
+                style={{ position: "absolute", top: 60, bottom: 80, left: 0, width: "35%", zIndex: 10, cursor: "w-resize" }}
+                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              />
+              <div
+                style={{ position: "absolute", top: 60, bottom: 80, right: 0, width: "35%", zIndex: 10, cursor: "e-resize" }}
+                onClick={() => setCurrentPage((p) => Math.min(pages.length - 1, p + 1))}
+              />
 
-              <div className="flex-1 flex items-center justify-center relative overflow-hidden py-4">
+              {/* Page display */}
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "8px 16px" }}>
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={currentPage}
                     src={pages[currentPage]?.url}
                     alt={`Frame ${currentPage + 1}`}
-                    initial={{ opacity: 0, x: 60 }}
+                    initial={{ opacity: 0, x: 40 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -60 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="max-w-full max-h-[72vh] object-contain rounded-xl shadow-2xl shadow-black/80 no-save select-none pointer-events-none"
+                    exit={{ opacity: 0, x: -40 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="no-save"
+                    style={{ maxWidth: "100%", maxHeight: "calc(100vh - 148px)", objectFit: "contain", display: "block" }}
                     crossOrigin="anonymous"
                   />
                 </AnimatePresence>
               </div>
 
-              <div className="h-16 flex items-center justify-between border border-void-border bg-void-surface/50 backdrop-blur-md rounded-2xl px-4 z-40 relative">
-                <button 
+              {/* Frame controls */}
+              <div style={{
+                height: 68, display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "0 20px", position: "relative", zIndex: 20,
+                background: "rgba(3,1,12,0.8)", backdropFilter: "blur(20px)",
+                borderTop: "1px solid rgba(255,255,255,0.07)",
+              }}>
+                <button
                   disabled={currentPage === 0}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  className="flex items-center gap-1 text-xs font-black uppercase tracking-widest disabled:opacity-20 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  className="nav-btn btn-ghost"
+                  style={{ display: "flex", alignItems: "center", gap: 6 }}
                 >
-                  <ChevronLeft size={18} /> Back
+                  <ChevronLeft size={16} /> Back
                 </button>
-                <span className="text-[11px] font-mono font-bold text-gray-500 tracking-[0.2em]">
-                  {currentPage + 1} / {pages.length}
-                </span>
-                <button 
+                <div style={{ textAlign: "center" }}>
+                  <div className="bb" style={{ fontSize: 18, letterSpacing: "0.06em", color: "#fff", lineHeight: 1 }}>
+                    {currentPage + 1}
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.2em" }}>
+                    of {pages.length}
+                  </div>
+                </div>
+                <button
                   disabled={currentPage === pages.length - 1}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  className="flex items-center gap-1 text-xs font-black uppercase tracking-widest disabled:opacity-20 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  className="nav-btn btn-white"
+                  style={{ display: "flex", alignItems: "center", gap: 6 }}
                 >
-                  Next <ChevronRight size={18} />
+                  Next <ChevronRight size={16} />
                 </button>
               </div>
             </div>
           )
         ) : (
-          <div className="text-gray-500 text-center font-mono py-20 uppercase tracking-wider">
-            No active frequencies found. <br/> {mangaTitle} Ch {id} is offline.
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            minHeight: "100vh", gap: 14, color: "rgba(255,255,255,0.25)", textAlign: "center",
+          }}>
+            <BookOpen size={36} style={{ opacity: 0.3 }} />
+            <div className="bb" style={{ fontSize: 13, letterSpacing: "0.22em" }}>
+              No pages found.
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.18)" }}>
+              {mangaTitle} · Ch {id} is offline or empty.
+            </div>
           </div>
         )}
       </div>
 
-      {/* --- SOCIAL CHANNELS --- */}
-      <motion.div 
-        initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 0.1 }}
-        className="w-full max-w-2xl px-6 mt-8 mb-12 relative z-20"
+      {/* ── Social stats + comments ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        style={{ width: "100%", maxWidth: 720, padding: "40px 20px 48px", position: "relative", zIndex: 20 }}
       >
-         <SocialStats slug={uniqueSlug} />
-         <CommentSection slug={uniqueSlug} />
+        <SocialStats slug={uniqueSlug} />
+        <CommentSection slug={uniqueSlug} />
       </motion.div>
 
-      {/* --- FOOTER NAVIGATION --- */}
-      <div className="w-full max-w-2xl px-6 py-12 flex flex-col sm:flex-row items-center justify-between gap-5 border-t border-void-border bg-void/50 backdrop-blur-md relative z-20">
-        <button 
-          onClick={() => {
-            router.push(`/read/${Number(id) - 1}?manga=${mangaId}`);
-            setCurrentPage(0);
-          }}
+      {/* ── Chapter navigation footer ── */}
+      <div style={{
+        width: "100%", maxWidth: 720, padding: "20px 20px 36px",
+        display: "flex", flexWrap: "wrap", alignItems: "center",
+        justifyContent: "space-between", gap: 12,
+        borderTop: "1px solid rgba(255,255,255,0.07)",
+        background: "rgba(3,1,12,0.7)", backdropFilter: "blur(20px)",
+        position: "relative", zIndex: 20,
+      }}>
+        <button
+          onClick={() => { router.push(`/read/${Number(id) - 1}?manga=${mangaId}`); setCurrentPage(0); }}
           disabled={Number(id) <= 1}
-          className="flex items-center gap-2 px-6 py-3 border border-void-border bg-void-surface text-gray-300 rounded-xl font-bold text-sm uppercase tracking-widest disabled:opacity-20 disabled:cursor-not-allowed hover:bg-void hover:text-white transition-all w-full sm:w-auto justify-center cursor-pointer"
+          className="nav-btn btn-ghost"
+          style={{ flex: 1, justifyContent: "center", minWidth: 120 }}
         >
-          <ArrowLeft size={16} /> Prev Ch
+          <ArrowLeft size={14} /> Prev Chapter
         </button>
 
-        <div className="w-full sm:w-auto flex justify-center">
+        <div style={{ flexShrink: 0, order: 0 }}>
           <SubscribeButton />
         </div>
 
-        <button 
-          onClick={() => {
-            router.push(`/read/${Number(id) + 1}?manga=${mangaId}`);
-            setCurrentPage(0);
+        <button
+          onClick={() => { router.push(`/read/${Number(id) + 1}?manga=${mangaId}`); setCurrentPage(0); }}
+          className="nav-btn btn-white"
+          style={{
+            flex: 1, justifyContent: "center", minWidth: 120,
+            boxShadow: `3px 3px 0 rgba(${meta.accentRgb},0.5)`,
           }}
-          className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black rounded-xl text-sm uppercase tracking-widest hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] transition-all w-full sm:w-auto justify-center cursor-pointer"
         >
-          Next Ch <ArrowLeft size={16} className="rotate-180" />
+          Next Chapter <ArrowRight size={14} />
         </button>
       </div>
-
     </div>
   );
 }

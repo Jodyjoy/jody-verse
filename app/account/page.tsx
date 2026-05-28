@@ -206,7 +206,11 @@ export default function AccountPage() {
         {/* ── Daily check-in ── */}
         <div style={{ marginBottom: 28 }}>
           <div className="bb" style={{ fontSize: 11, letterSpacing: "0.35em", color: "rgba(255,255,255,0.25)", marginBottom: 12 }}>Daily Check-In</div>
-          <DailyCheckIn />
+          <DailyCheckIn
+            onCheckIn={(newStreak, xpEarned) => {
+              setProfile((p: any) => p ? { ...p, streak: newStreak, xp: (p.xp || 0) + xpEarned } : p);
+            }}
+          />
         </div>
 
         {/* ── Reading history ── */}

@@ -6,7 +6,7 @@ import { Zap, Check, Flame, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
-  /** Called after a successful check-in so the parent can sync its own streak display */
+  /** Called after a successful check-in so parent can sync streak display */
   onCheckIn?: (newStreak: number, xpEarned: number) => void;
 }
 
@@ -24,6 +24,7 @@ export default function DailyCheckIn({ onCheckIn }: Props) {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+
       setUserId(user.id);
 
       const { data: p } = await supabase
@@ -32,13 +33,25 @@ export default function DailyCheckIn({ onCheckIn }: Props) {
         .eq("id", user.id)
         .single();
 
+      const today = new Date().toDateString();
+
       if (p) {
         setStreak(p.streak || 0);
+
+        // Check DB column first, fall back to localStorage
         if (p.last_check_in) {
-          const same = new Date(p.last_check_in).toDateString() === new Date().toDateString();
-          setCheckedIn(same);
+          setCheckedIn(new Date(p.last_check_in).toDateString() === today);
+        } else {
+          // last_check_in column may not exist yet — use localStorage
+          const saved = localStorage.getItem(`jv_checkin_${user.id}`);
+          setCheckedIn(saved === today);
         }
+      } else {
+        // No profile row at all — check localStorage only
+        const saved = localStorage.getItem(`jv_checkin_${user.id}`);
+        setCheckedIn(saved === today);
       }
+
       setLoading(false);
     })();
   }, []);
@@ -51,27 +64,34 @@ export default function DailyCheckIn({ onCheckIn }: Props) {
     const newStreak = streak + 1;
     const xp        = newStreak % 7 === 0 ? 150 : 25;
 
-    // ── Direct write to profiles (reliable, no RPC dependency) ──────────
-    const { error: writeErr } = await supabase
+    // ── 1. Write streak to profiles (only this column, which we know exists) ─
+    const { error: streakErr } = await supabase
       .from("profiles")
-      .update({
-        streak:         newStreak,
-        last_check_in:  new Date().toISOString(),
-      })
+      .update({ streak: newStreak })
       .eq("id", userId);
 
-    if (writeErr) {
-      console.error("Check-in write failed:", writeErr);
+    if (streakErr) {
+      console.error("Streak write failed:", streakErr.message);
       setSaveError(true);
       setSaving(false);
       return;
     }
 
-    // ── XP via add_xp RPC (best-effort; won't block the check-in) ───────
+    // ── 2. Try writing last_check_in (best-effort; column may not exist) ─────
+    await supabase
+      .from("profiles")
+      .update({ last_check_in: new Date().toISOString() })
+      .eq("id", userId);
+    // Intentionally ignore error — localStorage below is the reliable fallback
+
+    // ── 3. Always write today's date to localStorage ──────────────────────────
+    localStorage.setItem(`jv_checkin_${userId}`, new Date().toDateString());
+
+    // ── 4. XP via add_xp RPC (best-effort) ───────────────────────────────────
     const { error: xpErr } = await supabase.rpc("add_xp", { uid: userId, amount: xp });
     if (xpErr) console.warn("add_xp RPC unavailable; XP not updated:", xpErr.message);
 
-    // ── Update UI ────────────────────────────────────────────────────────
+    // ── 5. Update UI ──────────────────────────────────────────────────────────
     setCheckedIn(true);
     setStreak(newStreak);
     setLastXP(xp);
@@ -129,13 +149,11 @@ export default function DailyCheckIn({ onCheckIn }: Props) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Error hint */}
           {saveError && (
             <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#EF4444" }}>
               <AlertCircle size={11} /> Save failed
             </div>
           )}
-
           <button
             disabled={checkedInToday || saving}
             onClick={handleCheckIn}
@@ -153,10 +171,8 @@ export default function DailyCheckIn({ onCheckIn }: Props) {
               transition: "all 0.2s",
             }}
           >
-            {checkedInToday
-              ? <><Check size={11} /> Done Today</>
-              : saving
-              ? <>Saving…</>
+            {checkedInToday ? <><Check size={11} /> Done Today</>
+              : saving ? <>Saving…</>
               : <><Zap size={11} fill="black" /> Check In</>}
           </button>
         </div>
@@ -173,9 +189,9 @@ export default function DailyCheckIn({ onCheckIn }: Props) {
             <div key={i} style={{
               height: 42, borderRadius: 2,
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
-              border: done    ? "1px solid rgba(139,92,246,0.45)"
-                    : active  ? "1px dashed rgba(245,158,11,0.6)"
-                    :           "1px solid rgba(255,255,255,0.06)",
+              border: done   ? "1px solid rgba(139,92,246,0.45)"
+                    : active ? "1px dashed rgba(245,158,11,0.6)"
+                    :          "1px solid rgba(255,255,255,0.06)",
               background: done   ? "rgba(139,92,246,0.12)"
                         : active ? "rgba(245,158,11,0.05)"
                         :          "rgba(255,255,255,0.02)",
@@ -183,10 +199,7 @@ export default function DailyCheckIn({ onCheckIn }: Props) {
             }}>
               {done
                 ? <Check size={12} color="#8B5CF6" strokeWidth={3} />
-                : <span style={{
-                    fontFamily: "'Bebas Neue'", fontSize: 10, letterSpacing: "0.1em",
-                    color: isFinal ? "#F59E0B" : "rgba(255,255,255,0.18)",
-                  }}>
+                : <span style={{ fontFamily: "'Bebas Neue'", fontSize: 10, letterSpacing: "0.1em", color: isFinal ? "#F59E0B" : "rgba(255,255,255,0.18)" }}>
                     {isFinal ? "★" : `D${pos}`}
                   </span>
               }

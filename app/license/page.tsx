@@ -1,288 +1,410 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Download, Zap, Shield } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import Link from "next/link";
 import { getRank } from "../../lib/gameLogic";
 import { supabase } from "../../lib/supabaseClient";
 
+const SQUAD_META: Record<string, { color: string; hex: string; motto: string }> = {
+  "Squad 7":      { color: "#3B82F6", hex: "3B82F6", motto: "SHADOW OPS" },
+  "Thunder Lord": { color: "#F59E0B", hex: "F59E0B", motto: "HIGH VOLTAGE" },
+  "Iron Wall":    { color: "#EF4444", hex: "EF4444", motto: "UNBREAKABLE" },
+  "Void Walkers": { color: "#8B5CF6", hex: "8B5CF6", motto: "NULL SECTOR" },
+};
+
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return { r, g, b };
+}
+
 export default function LicenseGenerator() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // STATE
+
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState("Unknown");
-  const [xp, setXp] = useState(0);
-  const [squad, setSquad] = useState("Squad 7");
-  const [ability, setAbility] = useState("Shadow Step"); // Ability is still custom!
-  
-  // DERIVED STATE: Calculate Rank from XP
+  const [name, setName]       = useState("Unknown");
+  const [xp, setXp]           = useState(0);
+  const [squad, setSquad]     = useState("Squad 7");
+  const [ability, setAbility] = useState("Shadow Step");
+
   const rank = getRank(xp);
 
-  // SQUAD THEMES (Color + Motto)
-  const squadData: Record<string, { color: string, motto: string }> = {
-    "Squad 7": { color: "#3b82f6", motto: "SHADOW OPS" },      // Blue
-    "Thunder Lord": { color: "#eab308", motto: "HIGH VOLTAGE" }, // Yellow
-    "Iron Wall": { color: "#ef4444", motto: "UNBREAKABLE" },   // Red
-    "Void Walkers": { color: "#a855f7", motto: "NULL SECTOR" },  // Purple
-  };
-
-  // 1. FETCH REAL USER DATA
   useEffect(() => {
-    const fetchProfile = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            // Get XP and Squad from DB
-            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            if (data) {
-                // Use email prefix as name if no display name is set
-                setName(user.email?.split('@')[0].toUpperCase() || "AGENT");
-                setXp(data.xp);
-                // If they have a saved squad, use it, otherwise default
-                if (data.squad) setSquad(data.squad);
-            }
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        if (data) {
+          setName(user.email?.split("@")[0].toUpperCase() || "READER");
+          setXp(data.xp || 0);
+          if (data.squad) setSquad(data.squad);
         }
-        setLoading(false);
-    };
-    fetchProfile();
+      }
+      setLoading(false);
+    })();
   }, []);
 
-  // 2. DRAW CANVAS
+  // ── Canvas draw ────────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const theme = squadData[squad] || squadData["Squad 7"];
-    const accentColor = theme.color;
+    const theme   = SQUAD_META[squad] || SQUAD_META["Squad 7"];
+    const accent  = theme.color;
+    const { r, g, b } = hexToRgb(theme.hex);
+    const W = 600, H = 380;
 
-    // --- BASE LAYER ---
-    const gradient = ctx.createLinearGradient(0, 0, 600, 400);
-    gradient.addColorStop(0, "#0f172a"); 
-    gradient.addColorStop(1, "#020617"); 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 600, 400);
+    // ── Background ────────────────────────────────────────────────────────────
+    ctx.fillStyle = "#03010C";
+    ctx.fillRect(0, 0, W, H);
 
-    // --- TECH GRID ---
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+    // Subtle squad glow in top-right
+    const glow = ctx.createRadialGradient(W, 0, 0, W, 0, 260);
+    glow.addColorStop(0, `rgba(${r},${g},${b},0.18)`);
+    glow.addColorStop(1, "transparent");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+
+    // Halftone dots (hand-drawn)
+    ctx.fillStyle = `rgba(${r},${g},${b},0.12)`;
+    for (let x = 0; x < W; x += 18) {
+      for (let y = 0; y < H; y += 18) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // ── Outer border + angular corner accents ─────────────────────────────────
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.5)`;
     ctx.lineWidth = 1;
-    for (let i = 0; i < 600; i += 40) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 400); ctx.stroke();
-    }
-    for (let i = 0; i < 400; i += 40) {
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(600, i); ctx.stroke();
-    }
+    ctx.strokeRect(18, 18, W - 36, H - 36);
 
-    // --- BORDER & GLOW ---
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = accentColor;
-    ctx.strokeStyle = accentColor;
+    // Corner brackets
+    ctx.strokeStyle = accent;
     ctx.lineWidth = 3;
-    ctx.strokeRect(20, 20, 560, 360);
-    
-    // Tech Corners
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(20, 80); ctx.lineTo(20, 20); ctx.lineTo(80, 20); // Top Left
-    ctx.moveTo(580, 320); ctx.lineTo(580, 380); ctx.lineTo(520, 380); // Bottom Right
-    ctx.stroke();
-    ctx.shadowBlur = 0; 
+    const cs = 24; // corner size
+    [[18,18,1,1],[W-18,18,-1,1],[18,H-18,1,-1],[W-18,H-18,-1,-1]].forEach(([x,y,dx,dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(x + dx*cs, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy*cs);
+      ctx.stroke();
+    });
 
-    // --- PROFILE IMAGE PLACEHOLDER ---
-    ctx.fillStyle = "#1e293b";
-    ctx.fillRect(50, 80, 140, 180);
-    ctx.strokeStyle = "#334155";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(50, 80, 140, 180);
-    
-    // Silhouette
-    ctx.fillStyle = "#475569";
+    // ── Left photo placeholder ────────────────────────────────────────────────
+    const imgX = 38, imgY = 60, imgW = 130, imgH = 200;
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    ctx.fillRect(imgX, imgY, imgW, imgH);
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.3)`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(imgX, imgY, imgW, imgH);
+
+    // Silhouette shape
+    ctx.fillStyle = `rgba(${r},${g},${b},0.12)`;
     ctx.beginPath();
-    ctx.arc(120, 150, 40, 0, Math.PI * 2); 
+    ctx.arc(imgX + imgW / 2, imgY + 70, 34, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(120, 260, 60, 80, 0, Math.PI, 0); 
+    ctx.ellipse(imgX + imgW / 2, imgY + 200, 50, 70, 0, Math.PI, 0);
     ctx.fill();
-    
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.font = "bold 14px Courier New";
-    ctx.fillText("NO SIGNAL", 85, 170);
 
-    // --- TEXT DATA ---
-    ctx.fillStyle = "#fff";
-    
-    // Header (Aligned Left to avoid badge overlap)
-    ctx.font = "bold italic 30px Arial";
-    ctx.fillText("RIFT CONTRACTOR", 200, 70);
-    
-    ctx.fillStyle = accentColor;
-    ctx.font = "bold 12px Courier New";
-    ctx.fillText(`// ${theme.motto} // AUTH_KEY_99`, 200, 95);
-
-    // Name
-    ctx.fillStyle = "#94a3b8"; 
-    ctx.font = "12px Courier New";
-    ctx.fillText("OPERATIVE NAME", 200, 140);
-    
-    ctx.fillStyle = "#fff"; 
-    ctx.font = "bold 40px Impact"; 
-    ctx.fillText(name.substring(0, 12), 200, 180);
-    
-    // Ability
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "12px Courier New";
-    ctx.fillText("SPECIAL ABILITY", 200, 220);
-    
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 24px Arial";
-    ctx.fillText(ability, 200, 250);
-
-    // --- RANK BADGE (Dynamic Color) ---
-    ctx.beginPath();
-    ctx.moveTo(520, 40);
-    ctx.lineTo(580, 40);
-    ctx.lineTo(560, 100);
-    ctx.lineTo(500, 100);
-    ctx.closePath();
-    ctx.fillStyle = accentColor;
-    ctx.fill();
-    
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 36px Arial"; 
+    // Photo placeholder label
+    ctx.fillStyle = `rgba(${r},${g},${b},0.45)`;
+    ctx.font = "bold 9px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(rank.charAt(0), 540, 82); 
-    ctx.textAlign = "left"; 
+    ctx.fillText("PHOTO", imgX + imgW / 2, imgY + imgH - 10);
+    ctx.textAlign = "left";
 
-    // --- BARCODE & FOOTER ---
-    ctx.fillStyle = "#fff";
-    for(let i=50; i<300; i+=5) {
-        ctx.fillRect(i, 320, Math.random() > 0.5 ? 2 : 1, 30);
+    // ── Header text ───────────────────────────────────────────────────────────
+    // "JODY-VERSE" label
+    ctx.fillStyle = `rgba(${r},${g},${b},0.7)`;
+    ctx.font = "bold 9px Arial";
+    ctx.letterSpacing = "0.4em";
+    ctx.fillText("JODY-VERSE", 185, 44);
+
+    // Accent line under header
+    ctx.fillStyle = accent;
+    ctx.fillRect(185, 50, 60, 1);
+
+    // Squad motto badge
+    ctx.fillStyle = `rgba(${r},${g},${b},0.18)`;
+    ctx.fillRect(280, 36, 100, 18);
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.4)`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(280, 36, 100, 18);
+    ctx.fillStyle = accent;
+    ctx.font = "bold 8px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(theme.motto, 330, 48);
+    ctx.textAlign = "left";
+
+    // ── Name ─────────────────────────────────────────────────────────────────
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.font = "10px Arial";
+    ctx.fillText("NAME", 185, 80);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 44px Impact";
+    ctx.fillText(name.substring(0, 12), 185, 126);
+
+    // Underline
+    const nameWidth = Math.min(ctx.measureText(name.substring(0, 12)).width, 320);
+    ctx.fillStyle = accent;
+    ctx.fillRect(185, 132, nameWidth, 2);
+
+    // ── Rank badge ────────────────────────────────────────────────────────────
+    // Rank label
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.font = "10px Arial";
+    ctx.fillText("RANK", 185, 162);
+
+    // Badge box
+    ctx.fillStyle = `rgba(${r},${g},${b},0.2)`;
+    ctx.fillRect(185, 168, 72, 32);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(185, 168, 72, 32);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px Impact";
+    ctx.textAlign = "center";
+    ctx.fillText(rank, 221, 189);
+    ctx.textAlign = "left";
+
+    // XP sub-label
+    ctx.fillStyle = `rgba(${r},${g},${b},0.7)`;
+    ctx.font = "9px Arial";
+    ctx.fillText(`${xp} XP`, 265, 188);
+
+    // ── Squad ─────────────────────────────────────────────────────────────────
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.font = "10px Arial";
+    ctx.fillText("SQUAD", 185, 222);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px Arial";
+    ctx.fillText(squad.toUpperCase(), 185, 244);
+
+    // ── Ability ───────────────────────────────────────────────────────────────
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.font = "10px Arial";
+    ctx.fillText("ABILITY", 185, 272);
+
+    ctx.fillStyle = accent;
+    ctx.font = "bold 22px Arial";
+    ctx.fillText(ability, 185, 294);
+
+    // ── Barcode + footer ──────────────────────────────────────────────────────
+    for (let i = 38; i < 260; i += 4) {
+      ctx.fillStyle = `rgba(255,255,255,${Math.random() > 0.5 ? 0.7 : 0.35})`;
+      ctx.fillRect(i, H - 58, Math.random() > 0.6 ? 2 : 1, 22);
     }
-    
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "10px Courier New";
-    ctx.fillText(`ID: 882-${Math.floor(Math.random() * 9999)}-X`, 50, 365);
-    ctx.fillText("KENYA / SECTOR 4 / AUTHORIZED PERSONNEL ONLY", 300, 365);
 
-    // --- SCANLINES ---
-    ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-    for (let i = 0; i < 400; i += 4) {
-        ctx.fillRect(0, i, 600, 2);
+    ctx.fillStyle = `rgba(${r},${g},${b},0.5)`;
+    ctx.font = "8px monospace";
+    ctx.fillText(`JV-${Math.floor(Math.random() * 90000 + 10000)}`, 38, H - 28);
+
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.font = "8px Arial";
+    ctx.fillText("jody-verse.vercel.app", W - 38 - ctx.measureText("jody-verse.vercel.app").width, H - 28);
+
+    // ── Scanline overlay ──────────────────────────────────────────────────────
+    ctx.fillStyle = "rgba(0,0,0,0.07)";
+    for (let i = 0; i < H; i += 4) {
+      ctx.fillRect(0, i, W, 2);
     }
-
-  }, [name, squad, rank, ability]);
+  }, [name, squad, rank, ability, xp]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const link = document.createElement("a");
-    link.download = `Rift-License-${name}.png`;
+    link.download = `jody-verse-card-${name}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   };
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-blue-500 animate-pulse font-mono">CONNECTING TO DATABASE...</div>;
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "#03010C", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, letterSpacing: "0.35em", color: "#8B5CF6" }}>Loading…</div>
+    </div>
+  );
+
+  const accentColor = SQUAD_META[squad]?.color || "#3B82F6";
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-6 flex flex-col items-center justify-center font-sans">
-      
-      {/* HEADER */}
-      <div className="w-full max-w-5xl flex items-center justify-between mb-8">
-        <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition group">
-            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition" /> 
-            <span className="font-mono">BACK_TO_BASE</span>
-        </Link>
-        <div className="flex items-center gap-2">
-            <Shield className="text-blue-500" />
-            <h1 className="text-xl font-bold uppercase tracking-widest">
-                License Generator <span className="text-blue-500">v3.0</span>
-            </h1>
+    <div style={{ minHeight: "100vh", background: "#03010C", color: "#fff", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        .bb { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+        .halftone { background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 20px 20px; }
+        .field-input {
+          width: 100%; background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1); border-radius: 2;
+          padding: 10px 14px; color: #fff; font-size: 14px; font-family: 'DM Sans', sans-serif;
+          outline: none; transition: border-color 0.2s;
+        }
+        .field-input:focus { border-color: rgba(255,255,255,0.28); }
+        .field-select {
+          width: 100%; background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
+          padding: 10px 14px; color: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif;
+          outline: none; cursor: pointer; appearance: none; border-radius: 0;
+          transition: border-color 0.2s;
+        }
+        .field-select:focus { border-color: rgba(255,255,255,0.28); }
+        .field-select option { background: #0D0D1A; }
+      `}</style>
+
+      {/* Backgrounds */}
+      <div className="halftone" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }} />
+
+      {/* Top bar */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 40,
+        background: "rgba(3,1,12,0.94)", backdropFilter: "blur(24px)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "13px 0",
+      }}>
+        <div style={{ maxWidth: 1020, margin: "0 auto", padding: "0 1.5rem", display: "flex", alignItems: "center", gap: 14 }}>
+          <Link href="/account" style={{
+            width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center",
+            border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+            borderRadius: 2, color: "rgba(255,255,255,0.55)",
+          }}>
+            <ArrowLeft size={17} />
+          </Link>
+          <div>
+            <div className="bb" style={{ fontSize: 19, letterSpacing: "0.08em", color: "#fff", lineHeight: 1 }}>Reader Card</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.26)", marginTop: 2 }}>Jody-Verse · Your collectible card</div>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12 items-start w-full max-w-5xl">
-        
-        {/* INPUT CONTROLS */}
-        <div className="bg-gray-900/50 backdrop-blur-md p-8 rounded-3xl border border-gray-800 w-full lg:w-1/3 shadow-2xl">
-            <div className="space-y-6">
-                
-                {/* NAME (READ ONLY) */}
-                <div>
-                    <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Operative Name</label>
-                    <div className="w-full bg-black/50 border border-gray-700 rounded-lg p-4 text-gray-300 font-bold text-lg uppercase cursor-not-allowed">
-                        {name}
-                    </div>
-                </div>
+      <div style={{ maxWidth: 1020, margin: "0 auto", padding: "44px 1.5rem 80px", position: "relative", zIndex: 1 }}>
 
-                {/* RANK & SQUAD */}
-                <div className="grid grid-cols-2 gap-4">
-                    {/* RANK (READ ONLY - Calculated) */}
-                    <div className="bg-black/50 border border-gray-700 rounded-lg p-4 flex flex-col justify-center">
-                        <label className="text-xs font-bold text-gray-500 mb-1 block uppercase tracking-wider">Rank</label>
-                        <div className={`text-3xl font-black uppercase ${rank === 'S-RANK' ? 'text-red-500' : 'text-blue-500'}`}>
-                            {rank}
-                        </div>
-                        <p className="text-xs text-gray-500 font-mono mt-1">{xp} XP EARNED</p>
-                    </div>
+        <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "flex-start" }}>
 
-                    {/* SQUAD (EDITABLE - Preference) */}
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Squad</label>
-                        <select 
-                            value={squad} onChange={(e) => setSquad(e.target.value)}
-                            className="w-full h-full bg-black border border-gray-700 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none appearance-none cursor-pointer hover:border-blue-500/50 transition"
-                        >
-                            <option>Squad 7</option>
-                            <option>Thunder Lord</option>
-                            <option>Iron Wall</option>
-                            <option>Void Walkers</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* ABILITY (EDITABLE - Creative) */}
-                <div>
-                    <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Unique Ability</label>
-                    <input 
-                        value={ability} onChange={(e) => setAbility(e.target.value)}
-                        className="w-full bg-black border border-gray-700 rounded-lg p-4 text-white focus:border-blue-500 outline-none transition"
-                        maxLength={20}
-                        placeholder="e.g. Gravity Bind"
-                    />
-                </div>
+          {/* ── Controls ── */}
+          <div style={{
+            width: 260, flexShrink: 0,
+            border: "1px solid rgba(255,255,255,0.08)",
+            background: "rgba(255,255,255,0.02)",
+            padding: "24px 20px", borderRadius: 2,
+          }}>
+            <div className="bb" style={{ fontSize: 11, letterSpacing: "0.35em", color: "rgba(255,255,255,0.28)", marginBottom: 22 }}>
+              Customise
             </div>
 
-            <button 
-                onClick={handleDownload}
-                className="w-full mt-8 flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 group"
+            {/* Name — read only */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 7 }}>Name</div>
+              <div style={{
+                padding: "10px 14px", background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.06)", borderRadius: 2,
+                fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.5)",
+              }}>
+                {name}
+              </div>
+            </div>
+
+            {/* Rank — read only */}
+            <div style={{ marginBottom: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 7 }}>Rank</div>
+                <div style={{
+                  padding: "10px 14px", background: "rgba(255,255,255,0.03)",
+                  border: `1px solid ${accentColor}44`,
+                  borderRadius: 2, fontSize: 14, fontWeight: 700, color: accentColor,
+                }}>
+                  {rank}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 7 }}>XP</div>
+                <div style={{
+                  padding: "10px 14px", background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 2, fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.45)",
+                }}>
+                  {xp.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Squad — editable */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 7 }}>Squad</div>
+              <select className="field-select" value={squad} onChange={e => setSquad(e.target.value)}>
+                <option>Squad 7</option>
+                <option>Thunder Lord</option>
+                <option>Iron Wall</option>
+                <option>Void Walkers</option>
+              </select>
+            </div>
+
+            {/* Ability — editable */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: 7 }}>
+                Ability
+              </div>
+              <input
+                className="field-input"
+                value={ability}
+                onChange={e => setAbility(e.target.value)}
+                maxLength={22}
+                placeholder="e.g. Gravity Bind"
+                style={{ borderRadius: 2 }}
+              />
+              <div style={{ marginTop: 4, fontSize: 9, color: "rgba(255,255,255,0.2)" }}>{ability.length}/22</div>
+            </div>
+
+            {/* Download */}
+            <button
+              onClick={handleDownload}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "12px 0", borderRadius: 2,
+                background: "#fff", color: "#000",
+                fontFamily: "'Bebas Neue'", fontSize: 14, letterSpacing: "0.18em",
+                border: "none", cursor: "pointer",
+                boxShadow: `4px 4px 0 ${accentColor}55`,
+                transition: "all 0.2s",
+              }}
             >
-                <Download size={20} className="group-hover:translate-y-1 transition" /> 
-                PRINT LICENSE
+              <Download size={15} /> Download Card
             </button>
-        </div>
+          </div>
 
-        {/* LIVE PREVIEW */}
-        <div className="flex-1 flex flex-col items-center">
-            <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-                
-                <div className="relative border border-gray-700 rounded-xl overflow-hidden bg-black shadow-2xl">
-                    <canvas 
-                        ref={canvasRef}
-                        width={600}
-                        height={400}
-                        className="w-full h-auto max-w-full"
-                    />
-                </div>
+          {/* ── Canvas preview ── */}
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div className="bb" style={{ fontSize: 11, letterSpacing: "0.35em", color: "rgba(255,255,255,0.28)", marginBottom: 16 }}>
+              Live Preview
             </div>
-            
-            <p className="mt-6 text-gray-500 text-sm font-mono flex items-center gap-2">
-                <Zap size={14} className="text-yellow-500"/> 
-                LIVE DATA FEED // SYNCED
-            </p>
-        </div>
 
+            <div style={{
+              position: "relative",
+              border: `1px solid rgba(255,255,255,0.1)`,
+              borderRadius: 2, overflow: "hidden",
+              boxShadow: `6px 6px 0 ${accentColor}22`,
+            }}>
+              <canvas
+                ref={canvasRef}
+                width={600}
+                height={380}
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 10, color: "rgba(255,255,255,0.2)", letterSpacing: "0.1em" }}>
+              Card updates live as you edit · Downloads as PNG
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );

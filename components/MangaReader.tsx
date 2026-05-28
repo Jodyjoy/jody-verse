@@ -11,6 +11,7 @@ import CommentSection from "./CommentSection";
 import SocialStats from "./SocialStats";
 import BookmarkButton from "./BookmarkButton";
 import SubscribeButton from "./SubscribeButton";
+import ChapterReactions from "./ChapterReactions";
 import { motion, AnimatePresence } from "framer-motion";
 
 /* ─── Series branding lookup ─────────────────────────────────── */
@@ -433,6 +434,16 @@ export default function MangaReader() {
                   )}
                 </motion.div>
               ))}
+
+              {/* ── Reactions at end of chapter (webtoon mode) ── */}
+              <div style={{ padding: "0 16px 40px" }}>
+                <ChapterReactions
+                  mangaId={parseInt(mangaId)}
+                  chapterId={parseInt(id as string)}
+                  accentColor={meta.color}
+                  accentRgb={meta.accentRgb}
+                />
+              </div>
             </div>
           ) : (
             /* ── Manga / frame mode ── */
@@ -467,6 +478,22 @@ export default function MangaReader() {
                   />
                 </AnimatePresence>
               </div>
+
+              {/* ── Reactions strip (last page only, frame mode) ── */}
+              {currentPage === pages.length - 1 && (
+                <div style={{
+                  padding: "0 20px 4px",
+                  background: "rgba(3,1,12,0.85)", backdropFilter: "blur(20px)",
+                  borderTop: "1px solid rgba(255,255,255,0.05)",
+                }}>
+                  <ChapterReactions
+                    mangaId={parseInt(mangaId)}
+                    chapterId={parseInt(id as string)}
+                    accentColor={meta.color}
+                    accentRgb={meta.accentRgb}
+                  />
+                </div>
+              )}
 
               {/* Frame controls */}
               <div style={{

@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { LogOut, ArrowLeft, BookOpen, Flame, Star, Bookmark, ChevronRight, Play, Zap } from "lucide-react";
 import Link from "next/link";
 import { getRank, getNextRankXP } from "../../lib/gameLogic";
+import { BADGE_DEFS, BADGE_MAP, evaluateBadges } from "../../lib/badges";
 import DailyCheckIn from "../../components/DailyAttunement";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 /* ─── Squad colours ──────────────────────────────────────────── */
 const SQUAD_COLORS: Record<string, { color: string; rgb: string }> = {
@@ -33,11 +34,13 @@ interface HistEntry { mangaId: string; chapter: string; page?: number; timestamp
 
 export default function AccountPage() {
   const router = useRouter();
-  const [user, setUser]           = useState<any>(null);
-  const [profile, setProfile]     = useState<any>(null);
-  const [bookmarks, setBookmarks] = useState<any[]>([]);
-  const [history, setHistory]     = useState<HistEntry[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [user, setUser]             = useState<any>(null);
+  const [profile, setProfile]       = useState<any>(null);
+  const [bookmarks, setBookmarks]   = useState<any[]>([]);
+  const [history, setHistory]       = useState<HistEntry[]>([]);
+  const [badges, setBadges]         = useState<string[]>([]);
+  const [newBadge, setNewBadge]     = useState<string | null>(null);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -53,13 +56,36 @@ export default function AccountPage() {
       if (bm)   setBookmarks(bm);
 
       /* reading history from localStorage */
+      let histEntries: HistEntry[] = [];
       const raw = localStorage.getItem("user_reading_history");
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, any>;
-        const entries: HistEntry[] = Object.entries(parsed)
+        histEntries = Object.entries(parsed)
           .map(([mangaId, d]: [string, any]) => ({ mangaId, ...d }))
           .sort((a, b) => b.timestamp - a.timestamp);
-        setHistory(entries);
+        setHistory(histEntries);
+      }
+
+      /* ── Badge evaluation ── */
+      const existing: string[] = prof?.badges || [];
+      setBadges(existing);
+
+      const toEarn = evaluateBadges({
+        streak:         prof?.streak  || 0,
+        chaptersRead:   histEntries.length,
+        bookmarks:      bm?.length    || 0,
+        rank:           getRank(prof?.xp || 0),
+        existingBadges: existing,
+      });
+
+      if (toEarn.length > 0) {
+        const allBadges = [...existing, ...toEarn];
+        setBadges(allBadges);
+        // Show the first newly earned badge as a toast
+        setNewBadge(toEarn[0]);
+        setTimeout(() => setNewBadge(null), 4000);
+        // Persist to Supabase (best-effort — badges column may not exist yet)
+        await supabase.from("profiles").update({ badges: allBadges }).eq("id", user.id);
       }
 
       setLoading(false);
@@ -98,6 +124,36 @@ export default function AccountPage() {
         .bm-card:hover { background: rgba(255,255,255,0.045) !important; border-color: rgba(255,255,255,0.14) !important; }
         .hist-card:hover { background: rgba(255,255,255,0.04) !important; }
       `}</style>
+
+      {/* ── New badge toast ── */}
+      <AnimatePresence>
+        {newBadge && BADGE_MAP[newBadge] && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, x: "-50%" }}
+            animate={{ opacity: 1, y: 0,  x: "-50%" }}
+            exit={{    opacity: 0, y: 20,  x: "-50%" }}
+            transition={{ duration: 0.4, ease: [0.16,1,0.3,1] }}
+            style={{
+              position: "fixed", bottom: 28, left: "50%", zIndex: 100,
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "12px 20px", borderRadius: 2,
+              background: "rgba(8,8,16,0.96)", backdropFilter: "blur(20px)",
+              border: `1px solid rgba(${BADGE_MAP[newBadge].rgb},0.5)`,
+              boxShadow: `0 0 24px rgba(${BADGE_MAP[newBadge].rgb},0.2), 4px 4px 0 rgba(${BADGE_MAP[newBadge].rgb},0.15)`,
+            }}
+          >
+            <span style={{ fontSize: 22 }}>{BADGE_MAP[newBadge].emoji}</span>
+            <div>
+              <div style={{ fontFamily: "'Bebas Neue'", fontSize: 9, letterSpacing: "0.3em", color: BADGE_MAP[newBadge].color, marginBottom: 2 }}>
+                Badge Unlocked
+              </div>
+              <div style={{ fontFamily: "'Bebas Neue'", fontSize: 16, letterSpacing: "0.06em", color: "#fff" }}>
+                {BADGE_MAP[newBadge].label}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Background */}
       <div className="halftone" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }} />
@@ -211,6 +267,32 @@ export default function AccountPage() {
               setProfile((p: any) => p ? { ...p, streak: newStreak, xp: (p.xp || 0) + xpEarned } : p);
             }}
           />
+        </div>
+
+        {/* ── Badges ── */}
+        <div style={{ marginBottom: 28 }}>
+          <div className="bb" style={{ fontSize: 11, letterSpacing: "0.35em", color: "rgba(255,255,255,0.25)", marginBottom: 12 }}>Badges</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 8 }}>
+            {BADGE_DEFS.map(b => {
+              const earned = badges.includes(b.id);
+              return (
+                <div key={b.id} style={{
+                  padding: "14px 12px", borderRadius: 2, textAlign: "center",
+                  border: earned ? `1px solid rgba(${b.rgb},0.4)` : "1px solid rgba(255,255,255,0.05)",
+                  background: earned ? `rgba(${b.rgb},0.08)` : "rgba(255,255,255,0.015)",
+                  transition: "all 0.3s",
+                  opacity: earned ? 1 : 0.4,
+                }}>
+                  <div style={{ fontSize: 22, marginBottom: 6, filter: earned ? "none" : "grayscale(1)" }}>{b.emoji}</div>
+                  <div style={{
+                    fontFamily: "'Bebas Neue'", fontSize: 11, letterSpacing: "0.12em",
+                    color: earned ? b.color : "rgba(255,255,255,0.3)", marginBottom: 3,
+                  }}>{b.label}</div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.22)", lineHeight: 1.4 }}>{b.description}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Reading history ── */}
